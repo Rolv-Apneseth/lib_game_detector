@@ -5,7 +5,7 @@ edition = "2021"
 description = "A Rust library for detecting and parsing data about games installed on the system"
 readme = "README.md"
 repository = "https://github.com/rolv-apneseth/lib_game_detector/"
-license = "AGPLv3"
+license = "AGPL-3.0"
 license-file = "LICENSE"
 
 [dependencies]

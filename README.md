@@ -39,14 +39,14 @@ let all_games_from_steam = detector.get_all_detected_games_from_specific_launche
 - See [rofi-games](https://github.com/Rolv-Apneseth/rofi-games) for an example which uses this
 library to find games and their box art to use for displaying in a launcher
 
-### Currently supported game sources
+## Currently supported game sources
 
 - Steam
   - Non-steam games are currently not supported
 - Heroic Games Launcher (Legendary, Nile and GOG)
 - Lutris
 
-### TODO
+## TODO
 
 - Support additional game sources
   - Bottles

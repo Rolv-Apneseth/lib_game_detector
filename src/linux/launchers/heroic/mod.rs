@@ -19,6 +19,7 @@ struct ParsableLibraryData {
 }
 
 /// Utility function which parses a single (installed) game from a Heroic Games Launcher library file
+#[tracing::instrument(skip_all)]
 fn parse_game_from_library(file_content: &str) -> IResult<&str, ParsableLibraryData> {
     // ID
     let key_id = "app_name";
@@ -59,6 +60,7 @@ fn parse_game_from_library(file_content: &str) -> IResult<&str, ParsableLibraryD
 }
 
 /// Utitlity function which parses all (installed) games from a given Heroic Games Launcher library file
+#[tracing::instrument]
 fn parse_all_games_from_library(
     path_library: &Path,
 ) -> Result<Vec<ParsableLibraryData>, io::Error> {

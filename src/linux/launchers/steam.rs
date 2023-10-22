@@ -1,5 +1,4 @@
 use anyhow::anyhow;
-use log::{debug, error, trace, warn};
 use nom::{
     bytes::complete::{tag, take_till},
     character::is_alphanumeric,
@@ -12,6 +11,7 @@ use std::{
     path::{Path, PathBuf},
     sync::Arc,
 };
+use tracing::{debug, error, trace, warn};
 
 use crate::{
     data::{Game, GamesParsingError, GamesResult, GamesSlice, Launcher, SupportedLaunchers},
@@ -28,8 +28,8 @@ struct ParsableManifestData {
 
 // UTILS --------------------------------------------------------------------------------
 /// Used for checking if a file name matches the structure for an app manifest file
+#[tracing::instrument]
 fn parse_manifest_filename(filename: &str) -> IResult<&str, &str> {
-    dbg!(filename);
     delimited(
         tag("appmanifest_"),
         take_till(|a| !is_alphanumeric(a as u8)),
@@ -38,6 +38,7 @@ fn parse_manifest_filename(filename: &str) -> IResult<&str, &str> {
 }
 
 /// Used for parsing relevant game's data from the given app manifest file's contents
+#[tracing::instrument(skip_all)]
 fn parse_game_manifest(file_content: &str) -> IResult<&str, ParsableManifestData> {
     // ID
     let key_id = "appid";
@@ -72,6 +73,7 @@ pub struct SteamLibrary<'steamlibrary> {
 }
 impl<'steamlibrary> SteamLibrary<'steamlibrary> {
     /// Find and return paths of the app manifest files, if they exist
+    #[tracing::instrument(skip(self))]
     fn get_manifest_paths(&self) -> Result<Arc<[PathBuf]>, io::Error> {
         Ok(read_dir(self.path_library.join("steamapps"))?
             .flatten()
@@ -94,6 +96,7 @@ impl<'steamlibrary> SteamLibrary<'steamlibrary> {
     }
 
     /// Returns a new Game from the given path to a steam app manifest file (`appmanifest_.*.acf`)
+    #[tracing::instrument(skip(self))]
     fn get_game(&self, path_app_manifest: &PathBuf) -> Option<Game> {
         let file_content = read_to_string(path_app_manifest)
             .map_err(|e| {
@@ -127,7 +130,7 @@ impl<'steamlibrary> SteamLibrary<'steamlibrary> {
         // Skip entries without box art as they are not games (runtimes, redistributables, etc.),
         // at least as far as I know
         if path_box_art.is_none() {
-            debug!("Skipped steam title as no box art exists for it: {title:?}");
+            trace!("Skipped steam title as no box art exists for it: {title:?}");
             return None;
         }
 
@@ -140,6 +143,7 @@ impl<'steamlibrary> SteamLibrary<'steamlibrary> {
     }
 
     /// Get all steam games associated with this library
+    #[tracing::instrument]
     pub fn get_all_games(&self) -> Result<GamesSlice, io::Error> {
         let manifest_paths = self.get_manifest_paths()?;
 
@@ -158,6 +162,7 @@ impl<'steamlibrary> SteamLibrary<'steamlibrary> {
 }
 
 // STEAM LAUNCHER -----------------------------------------------------------------------
+#[derive(Debug)]
 pub struct Steam {
     path_steam_dir: PathBuf,
 }
@@ -171,6 +176,7 @@ impl Steam {
     }
 
     /// Get all available steam libraries by parsing the `libraryfolders.vdf` file
+    #[tracing::instrument]
     pub fn get_steam_libraries(&self) -> Result<Arc<[SteamLibrary]>, io::Error> {
         let libraries_vdg_path = self.path_steam_dir.join("steamapps/libraryfolders.vdf");
 
@@ -200,6 +206,7 @@ impl Launcher for Steam {
         self.path_steam_dir.is_dir()
     }
 
+    #[tracing::instrument(skip(self))]
     fn get_detected_games(&self) -> GamesResult {
         let libraries = self.get_steam_libraries().map_err(|e| {
             error!("Error with parsing steam libraries:\n{e}");

@@ -9,7 +9,7 @@ use crate::data::{
     GamesDetector, GamesPerLauncherSlice, GamesSlice, LaunchersSlice, SupportedLaunchers,
 };
 use directories::BaseDirs;
-use log::error;
+use tracing::error;
 
 mod launchers;
 

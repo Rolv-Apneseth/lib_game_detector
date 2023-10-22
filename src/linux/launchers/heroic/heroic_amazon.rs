@@ -1,8 +1,8 @@
-use log::{debug, error, trace, warn};
 use std::{
     io::{self},
     path::{Path, PathBuf},
 };
+use tracing::{debug, error, trace, warn};
 
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
@@ -12,6 +12,7 @@ use crate::{
 
 use super::ParsableLibraryData;
 
+#[derive(Debug)]
 pub struct HeroicAmazon {
     path_nile_library: PathBuf,
     path_icons: PathBuf,
@@ -34,6 +35,7 @@ impl HeroicAmazon {
     }
 
     /// Parse all relevant games' data from `nile_library.json`
+    #[tracing::instrument]
     fn parse_nile_library(&self) -> Result<Vec<ParsableLibraryData>, io::Error> {
         trace!(
             "Parsing Heroic Launcher Nile library file at {:?}",
@@ -62,6 +64,7 @@ impl Launcher for HeroicAmazon {
         SupportedLaunchers::HeroicGamesAmazon
     }
 
+    #[tracing::instrument(skip(self))]
     fn get_detected_games(&self) -> GamesResult {
         let parsed_data = self.parse_nile_library().map_err(|e| {
             error!("Error parsing the Heroic Games Nile library file: {e}");

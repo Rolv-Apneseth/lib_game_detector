@@ -1,10 +1,10 @@
-use log::{debug, error, trace, warn};
 use nom::IResult;
 use std::{
     fs::read_to_string,
     io::{self},
     path::{Path, PathBuf},
 };
+use tracing::{debug, error, trace, warn};
 
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
@@ -25,6 +25,7 @@ struct ParsableGOGInstalledData {
 /// Unfortunately a separate parser function is needed for GOG's `gog_store/installed.json` file because:
 /// 1. `store_cache/gog_library.json` has `is_installed` as always false
 /// 2. `gog_store/library.json` is empty for some reason
+#[tracing::instrument(skip_all)]
 fn parse_game_from_gog_installed(file_content: &str) -> IResult<&str, ParsableGOGInstalledData> {
     // INSTALL_PATH
     let key_path = "install_path";
@@ -54,6 +55,7 @@ fn parse_game_from_gog_installed(file_content: &str) -> IResult<&str, ParsableGO
     ))
 }
 
+#[derive(Debug)]
 pub struct HeroicGOG {
     path_gog_installed_games: PathBuf,
     path_icons: PathBuf,
@@ -76,6 +78,7 @@ impl HeroicGOG {
     }
 
     /// Parse all relevant games' data from GOG's `installed.json`
+    #[tracing::instrument]
     fn parse_gog_installed(&self) -> Result<Vec<ParsableGOGInstalledData>, io::Error> {
         trace!(
             "Parsing Heroic Launcher GOG installed games file at {:?}",
@@ -119,6 +122,7 @@ impl Launcher for HeroicGOG {
         SupportedLaunchers::HeroicGOG
     }
 
+    #[tracing::instrument(skip(self))]
     fn get_detected_games(&self) -> GamesResult {
         let parsed_data = self.parse_gog_installed().map_err(|e| {
             error!("Error parsing the Heroic Games Legendary library file: {e}");

@@ -1,5 +1,4 @@
 use itertools::Itertools;
-use log::{debug, error, trace, warn};
 use nom::{bytes::complete::take_until, IResult};
 use std::{
     fs::{read_dir, read_to_string, File},
@@ -7,6 +6,7 @@ use std::{
     path::{Path, PathBuf},
     sync::Arc,
 };
+use tracing::{debug, error, trace, warn};
 
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
@@ -41,6 +41,7 @@ pub struct ParsableDataCombined {
 // UTILS --------------------------------------------------------------------------------
 /// Used for parsing relevant game's data from the given game `.yml` file's contents
 // A bit complicated due to edge cases where only the executable name is defined in the file
+#[tracing::instrument(skip(file_content))]
 fn parse_game_yml<'a>(
     file_content: &'a str,
     file_path: &Path,
@@ -113,6 +114,7 @@ fn parse_game_yml<'a>(
 }
 
 // LUTRIS LAUNCHER ----------------------------------------------------------------------
+#[derive(Debug)]
 pub struct Lutris {
     path_games_dir: PathBuf,
     path_box_art_dir: PathBuf,
@@ -146,6 +148,7 @@ impl Lutris {
     }
 
     /// Parse data from the Lutris `game-paths.json` file
+    #[tracing::instrument(skip(self))]
     fn parse_game_paths_json(&self) -> Result<Arc<[ParsableGamePathsData]>, io::Error> {
         let game_paths_json_file = File::open(&self.path_game_paths_json).map_err(|e| {
             error!(
@@ -185,6 +188,7 @@ impl Lutris {
     }
 
     /// Parse data from the Lutris games directory, which contains 1 `.yml` file for each game
+    #[tracing::instrument(skip(self))]
     fn parse_games_dir(&self) -> Result<Arc<[ParsableGameYmlData]>, io::Error> {
         Ok(read_dir(&self.path_games_dir)
             .map_err(|e| {
@@ -197,6 +201,7 @@ impl Lutris {
     }
 
     /// Parse relevant game data from a given Lutris game's `.yml` file
+    #[tracing::instrument(skip(self))]
     fn get_parsable_game_yml_data(&self, path_game_yml: PathBuf) -> Option<ParsableGameYmlData> {
         let file_content = &read_to_string(&path_game_yml)
             .map_err(|e| {
@@ -215,6 +220,7 @@ impl Lutris {
     /// each game's `.yml` file.
     /// Matching of the data from these sources is done using the executable path of the
     /// game, which is the only thing defined in both sources
+    #[tracing::instrument]
     pub fn parse_game_data(&self) -> Result<Arc<[ParsableDataCombined]>, io::Error> {
         let game_paths_data = self.parse_game_paths_json()?;
         let game_yml_data = self.parse_games_dir()?;
@@ -247,6 +253,7 @@ impl Launcher for Lutris {
         SupportedLaunchers::Lutris
     }
 
+    #[tracing::instrument(skip(self))]
     fn get_detected_games(&self) -> GamesResult {
         let parsed_data = self.parse_game_data()?;
 

@@ -1,19 +1,20 @@
-use std::process::exit;
+use std::{process::exit, rc::Rc, sync::Arc};
 
-use crate::{
-    data::{Game, GamesDetector, Launcher, SupportedLaunchers},
-    linux::launchers::{heroic_amazon::HeroicAmazon, heroic_epic::HeroicEpic},
-    linux::launchers::{heroic_gog::HeroicGOG, lutris::Lutris},
+use self::launchers::{
+    heroic::{heroic_amazon::HeroicAmazon, heroic_epic::HeroicEpic, heroic_gog::HeroicGOG},
+    lutris::Lutris,
+    steam::Steam,
+};
+use crate::data::{
+    GamesDetector, GamesPerLauncherSlice, GamesSlice, LaunchersSlice, SupportedLaunchers,
 };
 use directories::BaseDirs;
 use log::error;
 
-use self::launchers::steam::Steam;
-
 mod launchers;
 
 pub struct GamesDetectorLinux {
-    launchers: Vec<Box<dyn Launcher>>,
+    launchers: LaunchersSlice,
 }
 
 impl GamesDetectorLinux {
@@ -23,44 +24,55 @@ impl GamesDetectorLinux {
             exit(1);
         };
 
-        let launchers = GamesDetectorLinux::get_launchers(&user_dirs);
+        let launchers = GamesDetectorLinux::get_supported_launchers(&user_dirs);
 
         GamesDetectorLinux { launchers }
     }
 
-    pub fn get_launchers(base_dirs: &BaseDirs) -> Vec<Box<dyn Launcher>> {
+    pub fn get_supported_launchers(base_dirs: &BaseDirs) -> LaunchersSlice {
         let path_home = base_dirs.home_dir();
         let path_config = base_dirs.config_dir();
         let path_cache = base_dirs.cache_dir();
 
         let path_heroic_config = path_config.join("heroic");
 
-        vec![
-            Box::new(Steam::new(path_home)),
-            Box::new(HeroicGOG::new(&path_heroic_config)),
-            Box::new(HeroicEpic::new(&path_heroic_config)),
-            Box::new(HeroicAmazon::new(&path_heroic_config)),
-            Box::new(Lutris::new(path_config, path_cache)),
-        ]
+        Rc::new([
+            Arc::new(Steam::new(path_home)),
+            Arc::new(HeroicGOG::new(&path_heroic_config)),
+            Arc::new(HeroicEpic::new(&path_heroic_config)),
+            Arc::new(HeroicAmazon::new(&path_heroic_config)),
+            Arc::new(Lutris::new(path_config, path_cache)),
+        ])
     }
 }
 
 impl GamesDetector for GamesDetectorLinux {
-    fn get_detected_launchers(&self) -> Vec<&Box<dyn Launcher>> {
-        self.launchers.iter().filter(|l| l.is_detected()).collect()
+    fn get_detected_launchers(&self) -> LaunchersSlice {
+        self.launchers
+            .iter()
+            .filter(|l| l.is_detected())
+            .cloned()
+            .collect()
     }
 
-    fn get_all_detected_games(&self) -> Option<Vec<Game>> {
+    fn get_all_detected_games(&self) -> Option<GamesSlice> {
         self.get_detected_launchers()
             .iter()
             .filter_map(|l| l.get_detected_games().ok())
-            .reduce(|mut acc, mut e| {
-                acc.append(&mut e);
-                acc
-            })
+            .reduce(|acc, e| acc.iter().cloned().chain(e.iter().cloned()).collect())
     }
 
-    fn get_all_detected_games_per_launcher(&self) -> Option<Vec<(SupportedLaunchers, Vec<Game>)>> {
+    fn get_all_detected_games_with_box_art(&self) -> Option<GamesSlice> {
+        self.get_all_detected_games().map(|slice| {
+            slice
+                .iter()
+                .cloned()
+                .filter(|game| game.path_box_art.is_some())
+                .collect()
+        })
+    }
+
+    fn get_all_detected_games_per_launcher(&self) -> Option<GamesPerLauncherSlice> {
         let categorised_games = self
             .get_detected_launchers()
             .iter()
@@ -71,7 +83,7 @@ impl GamesDetector for GamesDetectorLinux {
                     None
                 }
             })
-            .collect::<Vec<(SupportedLaunchers, Vec<Game>)>>();
+            .collect::<GamesPerLauncherSlice>();
 
         if categorised_games.is_empty() {
             return None;
@@ -83,7 +95,7 @@ impl GamesDetector for GamesDetectorLinux {
     fn get_all_detected_games_from_specific_launcher(
         &self,
         launcher_type: SupportedLaunchers,
-    ) -> Option<Vec<Game>> {
+    ) -> Option<GamesSlice> {
         self.get_detected_launchers()
             .iter()
             .find(|l| l.get_launcher_type() == launcher_type)

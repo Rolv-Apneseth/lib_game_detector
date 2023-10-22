@@ -1,17 +1,37 @@
 use std::{
     fmt::{self, Debug, Formatter},
+    io,
     path::PathBuf,
+    rc::Rc,
+    sync::Arc,
 };
 
+use thiserror::Error;
+
 /// Data structure which defines all relevant data about any particular game
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Game {
     pub title: String,
     pub launch_command: String,
     pub path_box_art: Option<PathBuf>,
     pub path_game_dir: Option<PathBuf>,
 }
+pub type GamesSlice = Arc<[Game]>;
 
+/// Custom error type to be used in the custom GamesSlice Result type
+#[derive(Error, Debug)]
+pub enum GamesParsingError {
+    #[error("IO error")]
+    Io(#[from] io::Error),
+
+    #[error(transparent)]
+    Other(#[from] anyhow::Error),
+}
+
+/// Custom Result type for GamesSlice
+pub type GamesResult = Result<GamesSlice, GamesParsingError>;
+
+/// Data structure representing a supported games source
 #[derive(PartialEq, Eq)]
 pub enum SupportedLaunchers {
     Steam,
@@ -20,7 +40,6 @@ pub enum SupportedLaunchers {
     HeroicGOG,
     Lutris,
 }
-
 impl Debug for SupportedLaunchers {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(
@@ -39,12 +58,15 @@ impl Debug for SupportedLaunchers {
     }
 }
 
-// Game detection is divided up by "launchers" e.g. Steam games, Heroic games, etc.
-pub trait Launcher {
-    fn get_detected_games(&self) -> Result<Vec<Game>, ()>;
+// Game detection is divided up by "launchers" which are just specific sources of games
+// e.g. Steam, Heroic Games Launcher, etc.
+pub trait Launcher: Send {
+    fn get_detected_games(&self) -> GamesResult;
     fn is_detected(&self) -> bool;
     fn get_launcher_type(&self) -> SupportedLaunchers;
 }
+pub type LaunchersSlice = Rc<[Arc<dyn Launcher>]>;
+pub type GamesPerLauncherSlice = Arc<[(SupportedLaunchers, GamesSlice)]>;
 
 impl Debug for dyn Launcher {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -53,11 +75,14 @@ impl Debug for dyn Launcher {
 }
 
 pub trait GamesDetector {
-    fn get_detected_launchers(&self) -> Vec<&Box<dyn Launcher>>;
-    fn get_all_detected_games(&self) -> Option<Vec<Game>>;
-    fn get_all_detected_games_per_launcher(&self) -> Option<Vec<(SupportedLaunchers, Vec<Game>)>>;
+    fn get_detected_launchers(&self) -> LaunchersSlice;
+    fn get_all_detected_games(&self) -> Option<GamesSlice>;
+    fn get_all_detected_games_with_box_art(&self) -> Option<GamesSlice>;
+    fn get_all_detected_games_per_launcher(
+        &self,
+    ) -> Option<Arc<[(SupportedLaunchers, GamesSlice)]>>;
     fn get_all_detected_games_from_specific_launcher(
         &self,
         launcher_type: SupportedLaunchers,
-    ) -> Option<Vec<Game>>;
+    ) -> Option<GamesSlice>;
 }

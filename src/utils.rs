@@ -1,5 +1,5 @@
 use nom::{
-    bytes::complete::{is_not, tag, take_till},
+    bytes::complete::{is_not, tag, take_till, take_until},
     character::{
         complete::{alpha1, char},
         is_alphanumeric, is_newline,
@@ -16,23 +16,15 @@ pub fn clean_game_title(title: &str) -> String {
 
 /// Returns an Option containing the given PathBuf, if the PathBuf points to an actual file
 pub fn some_if_file(path: PathBuf) -> Option<PathBuf> {
-    if path.is_file() {
-        Some(path)
-    } else {
-        None
-    }
+    path.is_file().then_some(path)
 }
 
 /// Returns an Option containing the given PathBuf, if the PathBuf points to an actual directory
 pub fn some_if_dir(path: PathBuf) -> Option<PathBuf> {
-    if path.is_dir() {
-        Some(path)
-    } else {
-        None
-    }
+    path.is_dir().then_some(path)
 }
 
-// NOM PARSERS -------------------------------------------------------------------
+// NOM PARSERS --------------------------------------------------------------------------
 pub fn parse_between_double_quotes(input: &str) -> IResult<&str, &str> {
     delimited(char('"'), is_not("\""), char('"'))(input)
 }
@@ -90,4 +82,27 @@ pub fn parse_unquoted_value<'a>(line: &'a str, key: &'a str) -> IResult<&'a str,
     let (line, value) = preceded(parse_not_alphanumeric, parse_till_end_of_line)(line)?;
 
     Ok((line, value.to_string()))
+}
+
+/// For parsing up to the next occurence of a desired key
+pub fn parse_until_key<'a>(file_content: &'a str, key: &'a str) -> IResult<&'a str, &'a str> {
+    let mut quoted_key = String::from("\t\"");
+    quoted_key.push_str(key);
+
+    let (line, value) = take_until(quoted_key.as_str())(file_content)?;
+
+    Ok((line, value))
+}
+
+/// For parsing up to the next occurence of a desired key, where keys are unquoted
+pub fn parse_until_key_unquoted<'a>(
+    file_content: &'a str,
+    key: &'a str,
+) -> IResult<&'a str, &'a str> {
+    let mut key_with_colon = String::from(key);
+    key_with_colon.push(':');
+
+    let (line, value) = take_until(key_with_colon.as_str())(file_content)?;
+
+    Ok((line, value))
 }

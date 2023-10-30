@@ -34,6 +34,7 @@
 //!
 //! # Examples
 //!
+//! - Check the `examples` folder
 //! - See [rofi-games](https://github.com/Rolv-Apneseth/rofi-games) for an example which uses this
 //! library to find games and their box art to use for displaying in a launcher
 //!

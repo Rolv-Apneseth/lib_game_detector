@@ -22,7 +22,7 @@ use crate::{
 struct ParsableManifestData {
     app_id: String,
     title: String,
-    install_path: String,
+    install_dir_path: String,
 }
 
 // UTILS --------------------------------------------------------------------------------
@@ -49,17 +49,17 @@ fn parse_game_manifest(file_content: &str) -> IResult<&str, ParsableManifestData
     let (file_content, _) = parse_until_key(file_content, key_title)?;
     let (file_content, title) = parse_double_quoted_value(file_content, key_title)?;
 
-    // INSTALL_PATH
+    // INSTALL_DIR_PATH
     let key_path = "installdir";
     let (file_content, _) = parse_until_key(file_content, key_path)?;
-    let (file_content, install_path) = parse_double_quoted_value(file_content, key_path)?;
+    let (file_content, install_dir_path) = parse_double_quoted_value(file_content, key_path)?;
 
     Ok((
         file_content,
         ParsableManifestData {
             app_id,
             title: clean_game_title(&title),
-            install_path,
+            install_dir_path,
         },
     ))
 }
@@ -108,7 +108,7 @@ impl<'steamlibrary> SteamLibrary<'steamlibrary> {
             ParsableManifestData {
                 app_id,
                 title,
-                install_path,
+                install_dir_path,
             },
         ) = parse_game_manifest(&file_content).ok()?;
 
@@ -117,7 +117,7 @@ impl<'steamlibrary> SteamLibrary<'steamlibrary> {
         let path_game_dir = some_if_dir(
             self.path_library
                 .join("steamapps/common")
-                .join(install_path),
+                .join(install_dir_path),
         );
         let path_box_art = some_if_file(self.path_steam_dir.join(format!(
             "appcache/librarycache/{app_id}_library_600x900.jpg"
@@ -212,7 +212,7 @@ impl Launcher for Steam {
             e
         })?;
 
-        libraries
+        let mut games = libraries
             .iter()
             .filter_map(|library| {
                 library
@@ -222,11 +222,23 @@ impl Launcher for Steam {
                         {e:?}"
                     )})
                     .ok()
-            })
+            }).peekable();
+
+        if games.peek().is_none() {
+            return Err(GamesParsingError::Other(anyhow!(
+                "No valid libraries detected."
+            )));
+        };
+
+        games
             .reduce(|acc, e| acc.iter().cloned().chain(e.iter().cloned()).collect())
             .ok_or_else(|| {
-                let combination_error_message =
-                    "Failed to combine slices from Steam Libraries into a single slice";
+                GamesParsingError::Other(anyhow!(
+                    "Failed to combine slices from Steam Libraries into a single slice"
+                ))
+            })
+    }
+}
 
                 error!("{combination_error_message}");
                 GamesParsingError::Other(anyhow!(combination_error_message))})

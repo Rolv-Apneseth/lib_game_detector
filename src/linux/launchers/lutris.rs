@@ -10,10 +10,8 @@ use tracing::{debug, error, trace, warn};
 
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
-    utils::{
-        parse_double_quoted_key_value, parse_unquoted_value, parse_until_key_unquoted, some_if_dir,
-        some_if_file,
-    },
+    parsers::{parse_double_quoted_key_value, parse_unquoted_value, parse_until_key_unquoted},
+    utils::{some_if_dir, some_if_file},
 };
 
 #[derive(Debug)]

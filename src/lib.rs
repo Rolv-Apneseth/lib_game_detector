@@ -54,6 +54,7 @@
 use cfg_if::cfg_if;
 
 pub mod data;
+mod parsers;
 mod utils;
 
 use data::GamesDetector;

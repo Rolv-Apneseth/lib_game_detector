@@ -6,8 +6,9 @@ use std::{fs::read_to_string, io, path::Path};
 
 use nom::IResult;
 
-use crate::utils::{
-    clean_game_title, parse_double_quoted_value, parse_unquoted_json_value, parse_until_key,
+use crate::{
+    parsers::{parse_double_quoted_value, parse_unquoted_json_value, parse_until_key},
+    utils::clean_game_title,
 };
 
 /// Useful data about a game which is parsable from a Heroic Games Launcher library file

@@ -60,14 +60,6 @@ fn parse_game_yml<'a>(
         }
     };
 
-    // TITLE
-    let key_title = "name";
-    let mut title: String = String::new();
-    // If no title is defined in the file, just carry on and the title can be guessed from the slug
-    if let Ok((f, _)) = parse_until_key_unquoted(file_content, key_title) {
-        (file_content, title) = parse_unquoted_value(f, key_title)?;
-    };
-
     // SLUG
     let key_slug = "game_slug";
     let slug: String;
@@ -91,7 +83,14 @@ fn parse_game_yml<'a>(
         }
     }
 
-    // TITLE AGAIN
+    // TITLE
+    let key_title = "name";
+    let mut title: String = String::new();
+
+    if let Ok((f, _)) = parse_until_key_unquoted(file_content, key_title) {
+        (file_content, title) = parse_unquoted_value(f, key_title)?;
+    };
+
     // Guess the title from the slug if it wasn't found in the file
     if title.is_empty() {
         let mut title_from_slug = slug.split('-').collect::<Vec<&str>>().join(" ");

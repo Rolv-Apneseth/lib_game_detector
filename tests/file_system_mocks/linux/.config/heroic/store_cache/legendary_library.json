@@ -1,0 +1,105 @@
+{
+	"library": [
+		{
+			"app_name": "0a2d9f6403244d12969e11da6713137b",
+			"art_cover": "https://cdn1.epicgames.com/item/50118b7f954e450f8823df1614b24e80/EGS_FallGuys_Mediatonic_S1_2560x1440-5bd68fb5fcb955110c87388f072b2fbf",
+			"art_square": "https://cdn1.epicgames.com/item/50118b7f954e450f8823df1614b24e80/EGS_FallGuys_Mediatonic_S2_1200x1600-6ea0c038d654d7b6dc06bf86a1522f21",
+			"cloud_save_enabled": false,
+			"developer": "EGFG LLC",
+			"extra": {
+				"about": {
+					"description": "Fall Guys",
+					"shortDescription": ""
+				},
+				"reqs": [],
+				"storeUrl": "https://www.epicgames.com/store/product/fall-guys"
+			},
+			"folder_name": "FallGuys",
+			"install": {
+				"executable": "RunFallGuys.exe",
+				"install_path": "/",
+				"install_size": "6.08 GiB",
+				"is_dlc": false,
+				"version": "EGS_4270",
+				"platform": "Windows"
+			},
+			"is_installed": true,
+			"namespace": "50118b7f954e450f8823df1614b24e80",
+			"is_mac_native": false,
+			"save_folder": "",
+			"save_path": null,
+			"title": "Fall Guys",
+			"canRunOffline": true,
+			"is_linux_native": false,
+			"runner": "legendary",
+			"store_url": "https://www.epicgames.com/store/product/fall-guys"
+		},
+		{
+			"app_name": "7d6b8784bab94d6cac5fea5ab7bb07a4",
+			"art_cover": "https://cdn1.epicgames.com/spt-assets/14eb3477a6084940b49de5aa73c60f98/mammoth-xowcq.jpg",
+			"art_square": "https://cdn1.epicgames.com/spt-assets/14eb3477a6084940b49de5aa73c60f98/mammoth-1ugs9.jpg",
+			"cloud_save_enabled": true,
+			"developer": "New Starbreeze Publishing AB",
+			"extra": {
+				"about": {
+					"description": "PAYDAY 2 is an action-packed, four-player co-op shooter that once again lets gamers don the masks of the original PAYDAY crew - Dallas, Hoxton, Wolf and Chains - as they descend on Washington DC for an epic crime spree.",
+					"shortDescription": ""
+				},
+				"reqs": [],
+				"storeUrl": "https://www.epicgames.com/store/product/payday-2"
+			},
+			"folder_name": "PAYDAY2",
+			"install": {
+				"install_size": "0",
+				"is_dlc": false
+			},
+			"is_installed": false,
+			"namespace": "3b661fd6a9724ac7b6ac6d10d0572511",
+			"is_mac_native": false,
+			"save_folder": "{AppData}/PAYDAY 2/saves/{EpicID}/",
+			"title": "PAYDAY 2",
+			"canRunOffline": false,
+			"is_linux_native": false,
+			"runner": "legendary",
+			"store_url": "https://www.epicgames.com/store/product/payday-2"
+		},
+		{
+			"app_name": "Sugar",
+			"art_cover": "https://cdn1.epicgames.com/item/9773aa1aa54f4f7b80e44bef04986cea/EGS_RocketLeague_PsyonixLLC_S1_2560x1440-0f2f0dbbb161b884d50f2ca09f4110bf",
+			"art_square": "https://cdn1.epicgames.com/item/9773aa1aa54f4f7b80e44bef04986cea/EGS_RocketLeague_PsyonixLLC_S2_1200x1600-ebcb79b7c8aa2432c3ce52dfd4fc4ae0",
+			"cloud_save_enabled": false,
+			"developer": "Psyonix LLC",
+			"extra": {
+				"about": {
+					"description": "Rocket League®",
+					"shortDescription": ""
+				},
+				"reqs": [],
+				"storeUrl": "https://www.epicgames.com/store/product/rocket-league"
+			},
+			"folder_name": "rocketleague",
+			"install": {
+				"executable": "Binaries/Win64/RocketLeague.exe",
+				"install_path": "/not_a_dir/RocketLeague",
+				"install_size": "25.58 GiB",
+				"is_dlc": false,
+				"version": "BC2_Update46+433650",
+				"platform": "Windows"
+			},
+			"is_installed": true,
+			"namespace": "9773aa1aa54f4f7b80e44bef04986cea",
+			"is_mac_native": false,
+			"save_folder": "",
+			"save_path": null,
+			"title": "Rocket League®",
+			"canRunOffline": true,
+			"is_linux_native": false,
+			"runner": "legendary",
+			"store_url": "https://www.epicgames.com/store/product/rocket-league"
+		}
+	],
+	"__timestamp": {
+		"library": "Sun Oct 29 2023 01:48:00 GMT+0100 (Irish Standard Time)"
+	}
+}
+

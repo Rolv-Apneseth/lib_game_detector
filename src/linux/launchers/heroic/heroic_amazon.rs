@@ -99,3 +99,32 @@ impl Launcher for HeroicAmazon {
         )
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::linux::test_utils::get_mock_heroic_config_path;
+
+    use super::*;
+
+    #[test]
+    fn test_heroic_amazon_launcher() -> Result<(), anyhow::Error> {
+        let launcher = HeroicAmazon::new(&get_mock_heroic_config_path());
+
+        assert!(launcher.is_detected());
+
+        let games = launcher.get_detected_games()?;
+
+        assert_eq!(games.len(), 2);
+
+        assert_eq!(games[0].title, "Metal Slug");
+        assert_eq!(games[1].title, "Metal Slug X");
+
+        assert!(games[0].path_game_dir.is_some());
+        assert!(games[1].path_game_dir.is_none());
+
+        assert!(games[0].path_box_art.is_none());
+        assert!(games[1].path_box_art.is_some());
+
+        Ok(())
+    }
+}

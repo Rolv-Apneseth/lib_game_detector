@@ -1,0 +1,29 @@
+"libraryfolders"
+{
+	"0"
+	{
+		"path"		"/not/a/valid/library"
+		"label"		""
+		"contentid"		"2698625989248208323"
+		"totalsize"		"0"
+		"update_clean_bytes_tally"		"784563452"
+		"time_last_update_corruption"		"0"
+		"apps"
+		{
+			"228980"		"399788250"
+		}
+	}
+	"1"
+	{
+		"path"		"/not_a_valid/library"
+		"label"		""
+		"contentid"		"7103446667635577235"
+		"totalsize"		"1967855026176"
+		"update_clean_bytes_tally"		"147251486084"
+		"time_last_update_corruption"		"0"
+		"apps"
+		{
+			"2348590"		"1222652790"
+		}
+	}
+}

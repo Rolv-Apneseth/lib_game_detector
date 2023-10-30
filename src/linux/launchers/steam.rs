@@ -240,7 +240,61 @@ impl Launcher for Steam {
     }
 }
 
-                error!("{combination_error_message}");
-                GamesParsingError::Other(anyhow!(combination_error_message))})
+#[cfg(test)]
+mod tests {
+    use crate::linux::test_utils::get_mock_file_system_path;
+
+    use super::*;
+
+    #[test]
+    fn test_steam_launcher() {
+        let launcher = Steam::new(&get_mock_file_system_path());
+
+        assert!(launcher.is_detected());
+
+        let games_result = launcher.get_detected_games();
+
+        // Library paths in `libraryfolders.vdf` mock are invalid library paths
+        assert!(games_result.is_err());
+        if let Err(e) = games_result {
+            assert!(matches!(e, GamesParsingError::Other(_)));
+
+            if let GamesParsingError::Other(anyhow_error) = e {
+                assert_eq!(anyhow_error.to_string(), "No valid libraries detected.")
+            }
+        }
+    }
+
+    #[test]
+    fn test_steam_libraries() -> Result<(), anyhow::Error> {
+        let path_file_system_mock = get_mock_file_system_path();
+        let path_steam_dir = &path_file_system_mock.join(".local/share/Steam");
+        let path_libs_dir = &path_file_system_mock.join("steam_libraries");
+
+        let libraries = [
+            SteamLibrary {
+                path_library: path_libs_dir.join("1"),
+                path_steam_dir,
+            },
+            SteamLibrary {
+                path_library: path_libs_dir.join("2"),
+                path_steam_dir,
+            },
+        ];
+
+        let games = [libraries[0].get_all_games()?, libraries[1].get_all_games()?];
+
+        assert_eq!(games[0].len(), 1);
+        assert_eq!(games[1].len(), 2);
+
+        assert_eq!(games[0][0].title, "Unrailed!");
+        assert_eq!(games[1][0].title, "Timberborn");
+        assert_eq!(games[1][1].title, "Terraria");
+
+        assert!(games[0][0].path_game_dir.is_some());
+        assert!(games[1][0].path_game_dir.is_some());
+        assert!(games[1][1].path_game_dir.is_some());
+
+        Ok(())
     }
 }

@@ -288,3 +288,38 @@ impl Launcher for Lutris {
             .collect())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::linux::test_utils::get_mock_file_system_path;
+
+    use super::*;
+
+    #[test]
+    fn test_lutris_launcher() -> Result<(), anyhow::Error> {
+        let path_file_system_mock = get_mock_file_system_path();
+        let launcher = Lutris::new(
+            &path_file_system_mock.join(".config"),
+            &path_file_system_mock.join(".cache"),
+        );
+
+        assert!(launcher.is_detected());
+
+        let games = launcher.get_detected_games()?;
+        assert_eq!(games.len(), 3);
+
+        assert_eq!(games[0].title, "GOG Galaxy");
+        assert_eq!(games[1].title, "Epic Games Store");
+        assert_eq!(games[2].title, "Warcraft 3");
+
+        assert!(games[0].path_game_dir.is_some());
+        assert!(games[1].path_game_dir.is_none());
+        assert!(games[2].path_game_dir.is_none());
+
+        assert!(games[0].path_box_art.is_some());
+        assert!(games[1].path_box_art.is_some());
+        assert!(games[2].path_box_art.is_some());
+
+        Ok(())
+    }
+}

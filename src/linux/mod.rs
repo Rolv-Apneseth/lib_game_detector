@@ -111,3 +111,17 @@ impl GamesDetector for GamesDetectorLinux {
             })
     }
 }
+
+// Test utils
+#[cfg(test)]
+pub mod test_utils {
+    use std::path::PathBuf;
+
+    pub fn get_mock_file_system_path() -> PathBuf {
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/file_system_mocks/linux")
+    }
+
+    pub fn get_mock_heroic_config_path() -> PathBuf {
+        get_mock_file_system_path().join(".config/heroic")
+    }
+}

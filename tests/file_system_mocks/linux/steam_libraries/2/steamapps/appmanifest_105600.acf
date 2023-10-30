@@ -1,0 +1,36 @@
+"AppState"
+{
+	"appid"		"105600"
+	"universe"		"1"
+	"name"		"Terraria"
+	"StateFlags"		"4"
+	"installdir"		"Terraria"
+	"lastupdated"		"1669205508"
+	"SizeOnDisk"		"715107635"
+	"StagingSize"		"0"
+	"buildid"		"9965506"
+	"AutoUpdateBehavior"		"0"
+	"AllowOtherDownloadsWhileRunning"		"0"
+	"ScheduledAutoUpdate"		"0"
+	"InstalledDepots"
+	{
+		"105602"
+		{
+			"manifest"		"6844625161744350207"
+			"size"		"715107635"
+		}
+	}
+	"UserConfig"
+	{
+		"language"		"english"
+		"platform_override_dest"		""
+		"platform_override_source"		""
+	}
+	"MountedConfig"
+	{
+		"language"		"english"
+		"platform_override_dest"		""
+		"platform_override_source"		""
+	}
+}
+

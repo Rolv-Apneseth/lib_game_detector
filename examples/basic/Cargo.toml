@@ -1,0 +1,9 @@
+[package]
+name = "basic"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tracing = "0.1.40"
+tracing-subscriber = "0.3.17"
+lib_game_detector = { path = "../../" }

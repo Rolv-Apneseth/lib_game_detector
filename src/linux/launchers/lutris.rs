@@ -1,37 +1,117 @@
-use log::{debug, error, trace, warn};
+use itertools::Itertools;
+use nom::{bytes::complete::take_until, IResult};
 use std::{
-    fs::{read_dir, File},
-    io::{BufRead, BufReader},
+    fs::{read_dir, read_to_string, File},
+    io::{self, BufRead, BufReader},
     path::{Path, PathBuf},
+    sync::Arc,
 };
+use tracing::{debug, error, trace, warn};
 
 use crate::{
-    data::{Game, Launcher, SupportedLaunchers},
-    utils::{parse_double_quoted_key_value, parse_unquoted_value, some_if_dir, some_if_file},
+    data::{Game, GamesResult, Launcher, SupportedLaunchers},
+    parsers::{parse_double_quoted_key_value, parse_unquoted_value, parse_until_key_unquoted},
+    utils::{some_if_dir, some_if_file},
 };
 
 #[derive(Debug)]
-pub struct GamePathsJsonData {
-    // exe_path: PathBuf,
+pub struct ParsableGamePathsData {
+    game_dir: String,
     executable_name: String,
     run_id: String,
 }
 
 #[derive(Debug)]
-pub struct GameYmlData {
+pub struct ParsableGameYmlData {
     executable_name: String,
     title: String,
     slug: String,
 }
 
 #[derive(Debug)]
-pub struct CombinedGameData {
-    // exe_path: PathBuf,
+pub struct ParsableDataCombined {
+    game_dir: String,
     run_id: String,
     title: String,
     slug: String,
 }
 
+// UTILS --------------------------------------------------------------------------------
+/// Used for parsing relevant game's data from the given game `.yml` file's contents
+// A bit complicated due to edge cases where only the executable name is defined in the file
+#[tracing::instrument(skip(file_content))]
+fn parse_game_yml<'a>(
+    file_content: &'a str,
+    file_path: &Path,
+) -> IResult<&'a str, Result<ParsableGameYmlData, ()>> {
+    // EXECUTABLE_NAME
+    let key_exe = "exe";
+    let (file_content, _) = parse_until_key_unquoted(file_content, key_exe)?;
+    // let (mut file_content, exe_path) = parse_unquoted_value(file_content, key_exe)?;
+    let (mut file_content, line) = take_until("\n")(file_content)?;
+    let executable_name = match line.rsplit_once('/').map(|t| t.1.to_owned()) {
+        Some(e) => e,
+        None => {
+            // TODO: Handle this better somehow. Can't figure out how to return a nom error.
+            error!("Error parsing '{key_exe}' line in game yml file at {file_path:?}");
+            return Ok((file_content, Err(())));
+        }
+    };
+
+    // SLUG
+    let key_slug = "game_slug";
+    let slug: String;
+
+    match parse_until_key_unquoted(file_content, key_slug) {
+        // Use value parsed from file for the slug, if one is found
+        Ok((f, _)) => {
+            (file_content, slug) = parse_unquoted_value(f, key_slug)?;
+        }
+        // Otherwise attempt to read the slug from the file's name (usually in the form
+        // `{slug}-{number}.yml`)
+        Err(e) => {
+            let Some(slug_from_filename) = file_path
+                .file_name()
+                .and_then(|s| s.to_string_lossy().rsplit_once('-').map(|f| f.0.to_owned()))
+            else {
+                return Err(e);
+            };
+
+            slug = slug_from_filename;
+        }
+    }
+
+    // TITLE
+    let key_title = "name";
+    let mut title: String = String::new();
+
+    if let Ok((f, _)) = parse_until_key_unquoted(file_content, key_title) {
+        (file_content, title) = parse_unquoted_value(f, key_title)?;
+    };
+
+    // Guess the title from the slug if it wasn't found in the file
+    if title.is_empty() {
+        let mut title_from_slug = slug.split('-').collect::<Vec<&str>>().join(" ");
+
+        if let Some(first_char) = title_from_slug.get_mut(0..1) {
+            first_char.make_ascii_uppercase();
+        };
+
+        title = title_from_slug;
+    };
+
+    Ok((
+        file_content,
+        Ok(ParsableGameYmlData {
+            executable_name,
+            title,
+            slug,
+        }),
+    ))
+}
+
+// LUTRIS LAUNCHER ----------------------------------------------------------------------
+#[derive(Debug)]
 pub struct Lutris {
     path_games_dir: PathBuf,
     path_box_art_dir: PathBuf,
@@ -47,11 +127,13 @@ impl Lutris {
         let path_box_art_dir = path_cache_lutris.join("coverart");
         let path_game_paths_json = path_cache_lutris.join("game-paths.json");
 
+        debug!("Lutris games directory exists: {}", path_games_dir.is_dir());
         debug!(
-            "Lutris games directory exists: {}\nLutris box art directory exists: {}\nLutris
-        `game-paths.json` file exists: {}",
-            path_games_dir.is_dir(),
-            path_box_art_dir.is_dir(),
+            "Lutris box art directory exists: {}",
+            path_box_art_dir.is_dir()
+        );
+        debug!(
+            "Lutris `game-paths.json` file exists: {}",
             path_game_paths_json.is_file()
         );
 
@@ -63,164 +145,97 @@ impl Lutris {
     }
 
     /// Parse data from the Lutris `game-paths.json` file
-    fn parse_game_paths_json(&self) -> Result<Vec<GamePathsJsonData>, ()> {
+    #[tracing::instrument(skip(self))]
+    fn parse_game_paths_json(&self) -> Result<Arc<[ParsableGamePathsData]>, io::Error> {
         let game_paths_json_file = File::open(&self.path_game_paths_json).map_err(|e| {
             error!(
                 "Error with reading game-paths.json file at {:?}:\n{e}",
                 self.path_game_paths_json
-            )
+            );
+            e
         })?;
 
-        let mut game_paths_data = BufReader::new(game_paths_json_file)
+        Ok(BufReader::new(game_paths_json_file)
             .lines()
             .flatten()
             .filter_map(|line| {
                 parse_double_quoted_key_value(&line)
                     .map(|(_, (run_id, exe_path))| {
-                        let Some(parsed_executable_name) = exe_path.rsplit_once('/').map(|f| f.1) else
-                        {
+                        let Some((parsed_game_dir, parsed_executable_name)) =
+                            exe_path.rsplit_once('/')
+                        else {
                             error!("Error extracting executable name from {:?}", exe_path);
                             return None;
                         };
 
-                        Some(GamePathsJsonData {
+                        Some(ParsableGamePathsData {
+                            game_dir: parsed_game_dir.to_owned(),
                             executable_name: parsed_executable_name.to_owned(),
                             run_id: run_id.to_owned(),
                             // exe_path: PathBuf::from(exe_path),
                         })
                     })
-                    .ok().and_then(|o| o)
+                    .ok()
+                    .flatten()
             })
-            .collect::<Vec<GamePathsJsonData>>();
-
-        // Remove duplicate values as this file regularly has duplicates for some reason
-        game_paths_data.sort_by(|a, b| a.run_id.cmp(&b.run_id));
-        game_paths_data.dedup_by(|a, b| a.run_id == b.run_id);
-
-        Ok(game_paths_data)
+            // Remove duplicate values as this file regularly has duplicates for some reason
+            .sorted_by(|a, b| a.run_id.cmp(&b.run_id))
+            .dedup_by(|a, b| a.run_id == b.run_id)
+            .collect())
     }
 
     /// Parse data from the Lutris games directory, which contains 1 `.yml` file for each game
-    fn parse_games_dir(&self) -> Result<Vec<GameYmlData>, ()> {
+    #[tracing::instrument(skip(self))]
+    fn parse_games_dir(&self) -> Result<Arc<[ParsableGameYmlData]>, io::Error> {
         Ok(read_dir(&self.path_games_dir)
-            .map_err(|e| error!("Error with reading games directory for Lutris: {e:?}"))?
+            .map_err(|e| {
+                error!("Error with reading games directory for Lutris: {e:?}");
+                e
+            })?
             .flatten()
-            .filter_map(|path| {
-                self.parse_game_yml(path.path())
-                    .map_err(|e| {
-                        error!(
-                            "Error with parsing a lutris game_yml file at {:?}\n{e:?}",
-                            path.path()
-                        )
-                    })
-                    .ok()
-                    .and_then(|o| o)
-            })
-            .collect::<Vec<GameYmlData>>())
+            .filter_map(|path| self.get_parsable_game_yml_data(path.path()))
+            .collect())
     }
 
-    /// Parse data from a given Lutris game's `.yml` file path
-    fn parse_game_yml(&self, path_game_yml: PathBuf) -> Result<Option<GameYmlData>, ()> {
-        let mut title = String::new();
-        let mut slug = String::new();
-        let mut executable_name = String::new();
+    /// Parse relevant game data from a given Lutris game's `.yml` file
+    #[tracing::instrument(skip(self))]
+    fn get_parsable_game_yml_data(&self, path_game_yml: PathBuf) -> Option<ParsableGameYmlData> {
+        let file_content = &read_to_string(&path_game_yml)
+            .map_err(|e| {
+                error!(
+                    "Error with reading Lutris game `.yml` file at {:?}:\n{e}",
+                    &path_game_yml
+                )
+            })
+            .ok()?;
 
-        let game_yml_file = File::open(&path_game_yml).map_err(|e| {
-            error!(
-                "Error with reading game's `.yml` file at {:?}:\n{e}",
-                path_game_yml
-            )
-        })?;
-
-        for line in BufReader::new(game_yml_file).lines().flatten().skip(1) {
-            if !title.is_empty() && !slug.is_empty() && !executable_name.is_empty() {
-                break;
-            };
-
-            if let Ok((_, exe_path)) = parse_unquoted_value(&line, "exe") {
-                executable_name = exe_path
-                    .rsplit_once('/')
-                    .map(|t| t.1)
-                    .ok_or_else(|| error!("Error parsing exe line in game yml file. Line: {line}"))?
-                    .to_owned();
-                continue;
-            }
-
-            if let Ok((_, parsed_slug)) = parse_unquoted_value(&line, "game_slug") {
-                slug = parsed_slug;
-                continue;
-            }
-
-            if let Ok((_, parsed_title)) = parse_unquoted_value(&line, "name") {
-                title = parsed_title;
-                continue;
-            }
-        }
-
-        // Guess slug from game's .yml file name if it wasn't found in the file
-        if slug.is_empty() {
-            if let Some(slug_from_filename) = path_game_yml.file_name().and_then(|s| {
-                s.to_string_lossy()
-                    .rsplit_once('-')
-                    .map(|f| f.0.to_string())
-            }) {
-                slug = slug_from_filename;
-            }
-        };
-
-        // Guess title from slug if it wasn't found in the file
-        if title.is_empty() {
-            let mut title_from_slug = slug.split('-').collect::<Vec<&str>>().join(" ");
-
-            if let Some(first_char) = title_from_slug.get_mut(0..1) {
-                first_char.make_ascii_uppercase();
-            };
-
-            title = title_from_slug;
-        }
-
-        if executable_name.is_empty() || slug.is_empty() || title.is_empty() {
-            debug!(
-                "Could not find relevant data fields for Lutris game from file:
-{path_game_yml:?}"
-            );
-
-            Ok(None)
-        } else {
-            Ok(Some(GameYmlData {
-                title,
-                slug,
-                executable_name,
-            }))
-        }
+        let (_, parsed_data) = parse_game_yml(file_content, &path_game_yml).ok()?;
+        parsed_data.ok()
     }
 
     /// Get all relevant game data by combining data from the `game-paths.json` file and
-    /// each games `.yml` file.
+    /// each game's `.yml` file.
     /// Matching of the data from these sources is done using the executable path of the
     /// game, which is the only thing defined in both sources
-    pub fn parse_game_data(&self) -> Result<Vec<CombinedGameData>, ()> {
-        let mut combined_data = Vec::new();
-
+    #[tracing::instrument]
+    pub fn parse_game_data(&self) -> Result<Arc<[ParsableDataCombined]>, io::Error> {
         let game_paths_data = self.parse_game_paths_json()?;
         let game_yml_data = self.parse_games_dir()?;
 
-        for path_data in game_paths_data {
-            if let Some(combined_datum) = game_yml_data
-                .iter()
-                .find(|g| g.executable_name == path_data.executable_name)
-                .map(|yml_data| CombinedGameData {
-                    // exe_path: path_data.exe_path,
-                    run_id: path_data.run_id,
-                    title: yml_data.title.clone(),
-                    slug: yml_data.slug.clone(),
-                })
-            {
-                combined_data.push(combined_datum);
-            }
-        }
-
-        Ok(combined_data)
+        Ok(game_paths_data
+            .iter()
+            .filter_map(|paths_data| {
+                game_yml_data
+                    .iter()
+                    .find(|g| g.executable_name == paths_data.executable_name)
+                    .map(|yml_data| ParsableDataCombined {
+                        game_dir: paths_data.game_dir.to_owned(),
+                        run_id: paths_data.run_id.to_owned(),
+                        title: yml_data.title.to_owned(),
+                        slug: yml_data.slug.to_owned(),
+                    })
+            })
+            .collect())
     }
 }
 
@@ -231,39 +246,80 @@ impl Launcher for Lutris {
             && self.path_box_art_dir.is_dir()
     }
 
-    fn get_launcher_type(&self) -> crate::data::SupportedLaunchers {
+    fn get_launcher_type(&self) -> SupportedLaunchers {
         SupportedLaunchers::Lutris
     }
 
-    fn get_detected_games(&self) -> Result<Vec<Game>, ()> {
-        let mut games = Vec::new();
+    #[tracing::instrument(skip(self))]
+    fn get_detected_games(&self) -> GamesResult {
+        let parsed_data = self.parse_game_data()?;
 
-        let game_data = self.parse_game_data()?;
-
-        for CombinedGameData {
-            // exe_path,
-            run_id,
-            title,
-            slug,
-        } in game_data
-        {
-            let launch_command = format!("env LUTRIS_SKIP_INIT=1 lutris lutris:rungameid/{run_id}");
-
-            let path_box_art = some_if_file(self.path_box_art_dir.join(format!("{}.jpg", slug)));
-            trace!("Lutris - Box art found for '{title}': {path_box_art:?}");
-
-            games.push(Game {
-                title,
-                launch_command,
-                path_box_art,
-                path_game_dir: None,
-            })
-        }
-
-        if games.is_empty() {
+        if parsed_data.is_empty() {
             warn!("No games (at least not with sufficient data) found for Lutris launcher");
         }
 
-        Ok(games)
+        Ok(parsed_data
+            .iter()
+            .map(
+                |ParsableDataCombined {
+                     game_dir,
+                     run_id,
+                     title,
+                     slug,
+                 }| {
+                    let launch_command =
+                        format!("env LUTRIS_SKIP_INIT=1 lutris lutris:rungameid/{run_id}");
+
+                    let path_box_art =
+                        some_if_file(self.path_box_art_dir.join(format!("{}.jpg", slug)));
+                    let path_game_dir = some_if_dir(PathBuf::from(game_dir));
+
+                    trace!("Lutris - Game directory found for '{title}': {path_game_dir:?}");
+                    trace!("Lutris - Box art found for '{title}': {path_box_art:?}");
+
+                    Game {
+                        title: title.clone(),
+                        launch_command,
+                        path_box_art,
+                        path_game_dir,
+                    }
+                },
+            )
+            .collect())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::linux::test_utils::get_mock_file_system_path;
+
+    use super::*;
+
+    #[test]
+    fn test_lutris_launcher() -> Result<(), anyhow::Error> {
+        let path_file_system_mock = get_mock_file_system_path();
+        let launcher = Lutris::new(
+            &path_file_system_mock.join(".config"),
+            &path_file_system_mock.join(".cache"),
+        );
+
+        assert!(launcher.is_detected());
+
+        let games = launcher.get_detected_games()?;
+        assert_eq!(games.len(), 3);
+
+        assert_eq!(games[0].title, "GOG Galaxy");
+        assert_eq!(games[1].title, "Epic Games Store");
+        assert_eq!(games[2].title, "Warcraft 3");
+
+        assert!(games[0].path_game_dir.is_some());
+        assert!(games[1].path_game_dir.is_none());
+        assert!(games[2].path_game_dir.is_none());
+
+        assert!(games[0].path_box_art.is_some());
+        assert!(games[1].path_box_art.is_some());
+        assert!(games[2].path_box_art.is_some());
+
+        Ok(())
     }
 }

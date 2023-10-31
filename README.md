@@ -19,7 +19,7 @@ Install with `cargo add lib_game_detector` or add the following to your `Cargo.t
 
 ```toml
 [dependencies]
-lib_game_detector = "0.0.1"
+lib_game_detector = "0.0.2"
 ```
 
 ## Usage
@@ -36,6 +36,7 @@ let all_games_from_steam = detector.get_all_detected_games_from_specific_launche
 
 ## Examples
 
+- Check the [examples folder](https://github.com/Rolv-Apneseth/lib_game_detector/tree/main/examples)
 - See [rofi-games](https://github.com/Rolv-Apneseth/rofi-games) for an example which uses this
 library to find games and their box art to use for displaying in a launcher
 
@@ -54,4 +55,4 @@ library to find games and their box art to use for displaying in a launcher
   - Games available on `$PATH`, such as 0 A.D.
 - Support Windows
 
-License: AGPLv3
+License: AGPL-3.0

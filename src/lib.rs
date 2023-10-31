@@ -17,7 +17,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! lib_game_detector = "0.0.1"
+//! lib_game_detector = "0.0.2"
 //! ```
 //!
 //! # Usage
@@ -34,7 +34,7 @@
 //!
 //! # Examples
 //!
-//! - Check the `examples` folder
+//! - Check the [examples folder](https://github.com/Rolv-Apneseth/lib_game_detector/tree/main/examples)
 //! - See [rofi-games](https://github.com/Rolv-Apneseth/rofi-games) for an example which uses this
 //! library to find games and their box art to use for displaying in a launcher
 //!

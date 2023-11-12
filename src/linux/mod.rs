@@ -1,6 +1,7 @@
 use std::{process::exit, rc::Rc, sync::Arc};
 
 use self::launchers::{
+    bottles::Bottles,
     heroic::{heroic_amazon::HeroicAmazon, heroic_epic::HeroicEpic, heroic_gog::HeroicGOG},
     lutris::Lutris,
     steam::Steam,
@@ -42,6 +43,7 @@ impl GamesDetectorLinux {
             Arc::new(HeroicEpic::new(&path_heroic_config)),
             Arc::new(HeroicAmazon::new(&path_heroic_config)),
             Arc::new(Lutris::new(path_config, path_cache)),
+            Arc::new(Bottles::new(path_data)),
         ])
     }
 }

@@ -39,6 +39,7 @@ pub enum SupportedLaunchers {
     HeroicGamesEpicGames,
     HeroicGOG,
     Lutris,
+    Bottles,
 }
 impl Debug for SupportedLaunchers {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
@@ -53,6 +54,7 @@ impl Debug for SupportedLaunchers {
                     "Heroic Games Launcher - Epic Games Store",
                 SupportedLaunchers::HeroicGOG => "Heroic Games Launcher - GOG",
                 SupportedLaunchers::Lutris => "Lutris",
+                SupportedLaunchers::Bottles => "Bottles",
             }
         )
     }

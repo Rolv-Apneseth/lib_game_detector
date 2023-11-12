@@ -30,14 +30,14 @@ impl GamesDetectorLinux {
     }
 
     pub fn get_supported_launchers(base_dirs: &BaseDirs) -> LaunchersSlice {
-        let path_home = base_dirs.home_dir();
         let path_config = base_dirs.config_dir();
         let path_cache = base_dirs.cache_dir();
+        let path_data = base_dirs.data_dir();
 
         let path_heroic_config = path_config.join("heroic");
 
         Rc::new([
-            Arc::new(Steam::new(path_home)),
+            Arc::new(Steam::new(path_data)),
             Arc::new(HeroicGOG::new(&path_heroic_config)),
             Arc::new(HeroicEpic::new(&path_heroic_config)),
             Arc::new(HeroicAmazon::new(&path_heroic_config)),

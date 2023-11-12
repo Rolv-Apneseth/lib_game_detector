@@ -167,8 +167,8 @@ pub struct Steam {
 }
 
 impl Steam {
-    pub fn new(path_home: &Path) -> Self {
-        let path_steam_dir = path_home.join(".local/share/Steam");
+    pub fn new(path_data: &Path) -> Self {
+        let path_steam_dir = path_data.join("Steam");
         debug!("Steam dir path exists: {}", path_steam_dir.is_dir());
 
         Steam { path_steam_dir }

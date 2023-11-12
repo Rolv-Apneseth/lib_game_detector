@@ -248,7 +248,7 @@ mod tests {
 
     #[test]
     fn test_steam_launcher() {
-        let launcher = Steam::new(&get_mock_file_system_path());
+        let launcher = Steam::new(&get_mock_file_system_path().join(".local/share"));
 
         assert!(launcher.is_detected());
 

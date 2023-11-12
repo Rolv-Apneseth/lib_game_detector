@@ -11,17 +11,17 @@ use tracing::{debug, error, trace, warn};
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
     parsers::{parse_double_quoted_key_value, parse_unquoted_value, parse_until_key_unquoted},
-    utils::{some_if_dir, some_if_file},
+    utils::{clean_game_title, some_if_dir, some_if_file},
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ParsableGamePathsData {
     game_dir: String,
     executable_name: String,
     run_id: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ParsableGameYmlData {
     executable_name: String,
     title: String,
@@ -34,6 +34,17 @@ pub struct ParsableDataCombined {
     run_id: String,
     title: String,
     slug: String,
+}
+
+impl ParsableDataCombined {
+    fn combine(paths_data: ParsableGamePathsData, yml_data: ParsableGameYmlData) -> Self {
+        ParsableDataCombined {
+            game_dir: paths_data.game_dir,
+            run_id: paths_data.run_id,
+            title: yml_data.title,
+            slug: yml_data.slug,
+        }
+    }
 }
 
 // UTILS --------------------------------------------------------------------------------
@@ -224,16 +235,12 @@ impl Lutris {
 
         Ok(game_paths_data
             .iter()
+            .cloned()
             .filter_map(|paths_data| {
                 game_yml_data
                     .iter()
                     .find(|g| g.executable_name == paths_data.executable_name)
-                    .map(|yml_data| ParsableDataCombined {
-                        game_dir: paths_data.game_dir.to_owned(),
-                        run_id: paths_data.run_id.to_owned(),
-                        title: yml_data.title.to_owned(),
-                        slug: yml_data.slug.to_owned(),
-                    })
+                    .map(|yml_data| ParsableDataCombined::combine(paths_data, yml_data.clone()))
             })
             .collect())
     }
@@ -278,7 +285,7 @@ impl Launcher for Lutris {
                     trace!("Lutris - Box art found for '{title}': {path_box_art:?}");
 
                     Game {
-                        title: title.clone(),
+                        title: clean_game_title(title),
                         launch_command,
                         path_box_art,
                         path_game_dir,

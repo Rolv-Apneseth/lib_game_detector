@@ -19,7 +19,7 @@ use crate::{
         parse_not_alphanumeric, parse_till_end_of_line, parse_unquoted_value,
         parse_until_key_unquoted,
     },
-    utils::{clean_game_title, some_if_dir, some_if_file},
+    utils::{clean_game_title, get_launch_command, some_if_dir, some_if_file},
 };
 
 #[derive(Debug, Clone)]
@@ -289,8 +289,10 @@ impl Launcher for Bottles {
                      bottle_subdir,
                      game_dir,
                  }| {
-                    let launch_command =
-                        format!("env bottles-cli run -p '{title}' -b '{bottle_name}'");
+                    let launch_command = get_launch_command(
+                        "bottles-cli",
+                        Arc::new(["run", "-p", &title, "-b", &bottle_name]),
+                    );
 
                     let path_box_art = box_art.clone().and_then(|s| {
                         let path = self

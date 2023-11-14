@@ -1,13 +1,14 @@
 use std::{
     io::{self},
     path::{Path, PathBuf},
+    sync::Arc,
 };
 use tracing::{debug, error, trace, warn};
 
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
     linux::launchers::heroic::parse_all_games_from_library,
-    utils::{some_if_dir, some_if_file},
+    utils::{get_launch_command, some_if_dir, some_if_file},
 };
 
 use super::ParsableLibraryData;
@@ -80,7 +81,10 @@ impl Launcher for HeroicAmazon {
                 title,
             } = parsed_data;
 
-                let launch_command = format!("xdg-open heroic://launch/nile/{app_id}");
+                let launch_command = get_launch_command(
+                    "xdg-open",
+                    Arc::new([&format!("heroic://launch/nile/{app_id}")]),
+                );
 
                 let path_game_dir = some_if_dir(PathBuf::from(install_path));
                 let path_box_art = some_if_file(self.path_icons.join(format!("{app_id}.jpg")));

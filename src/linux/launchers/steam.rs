@@ -16,7 +16,7 @@ use tracing::{debug, error, trace, warn};
 use crate::{
     data::{Game, GamesParsingError, GamesResult, GamesSlice, Launcher, SupportedLaunchers},
     parsers::{parse_double_quoted_value, parse_until_key},
-    utils::{clean_game_title, some_if_dir, some_if_file},
+    utils::{clean_game_title, get_launch_command, some_if_dir, some_if_file},
 };
 
 struct ParsableManifestData {
@@ -112,7 +112,8 @@ impl<'steamlibrary> SteamLibrary<'steamlibrary> {
             },
         ) = parse_game_manifest(&file_content).ok()?;
 
-        let launch_command = format!("steam steam://rungameid/{app_id}");
+        let launch_command =
+            get_launch_command("steam", Arc::new([&format!("steam://rungameid/{app_id}")]));
 
         let path_game_dir = some_if_dir(
             self.path_library

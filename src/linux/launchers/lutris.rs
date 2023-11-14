@@ -11,7 +11,7 @@ use tracing::{debug, error, trace, warn};
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
     parsers::{parse_double_quoted_key_value, parse_unquoted_value, parse_until_key_unquoted},
-    utils::{clean_game_title, some_if_dir, some_if_file},
+    utils::{clean_game_title, get_launch_command, some_if_dir, some_if_file},
 };
 
 #[derive(Debug, Clone)]
@@ -274,8 +274,14 @@ impl Launcher for Lutris {
                      title,
                      slug,
                  }| {
-                    let launch_command =
-                        format!("env LUTRIS_SKIP_INIT=1 lutris lutris:rungameid/{run_id}");
+                    let launch_command = get_launch_command(
+                        "env",
+                        Arc::new([
+                            "LUTRIS_SKIP_INIT=1",
+                            "lutris",
+                            &format!("lutris:rungameid/{run_id}"),
+                        ]),
+                    );
 
                     let path_box_art =
                         some_if_file(self.path_box_art_dir.join(format!("{}.jpg", slug)));

@@ -1,5 +1,5 @@
 use nom::{
-    bytes::complete::{is_not, tag},
+    bytes::complete::{is_not, tag, take_till},
     character::complete::multispace1,
     sequence::preceded,
     IResult,
@@ -65,24 +65,26 @@ fn parse_game_from_bottle_yml(file_content: &str) -> IResult<&str, ParsableBottl
     // GAME DIR
     let key_game_dir = "folder";
     let (file_content, _) = parse_until_key_unquoted(file_content, key_game_dir)?;
-    let (mut file_content, first_path_fragment) = parse_unquoted_value(file_content, key_game_dir)?;
+    let (mut file_content, first_path_fragment) =
+        preceded(take_till(|c| c == '/'), parse_till_end_of_line)(file_content)?;
 
     // Path can be split into multiple lines unfortunately
     let mut game_dir_fragments: Vec<&str> = vec![&first_path_fragment];
     loop {
         let (new_file_content, line) = preceded(tag("\n"), parse_till_end_of_line)(file_content)?;
-        file_content = new_file_content;
 
         if line.contains(':') {
             break;
         };
+
+        file_content = new_file_content;
 
         let (path_fragment, _) = multispace1(line)?;
 
         game_dir_fragments.push(path_fragment);
     }
 
-    let game_dir = format!("/{}", game_dir_fragments.join(" "));
+    let game_dir = game_dir_fragments.join(" ");
 
     // ID
     let key_id = "id";

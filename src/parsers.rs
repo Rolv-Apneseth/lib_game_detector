@@ -66,7 +66,7 @@ pub fn parse_unquoted_value<'a>(line: &'a str, key: &'a str) -> IResult<&'a str,
     Ok((line, value.to_string()))
 }
 
-/// For parsing up to the next occurence of a desired key
+/// For parsing up to the next occurrence of a desired key
 pub fn parse_until_key<'a>(file_content: &'a str, key: &'a str) -> IResult<&'a str, &'a str> {
     let mut quoted_key = String::from("\t\"");
     quoted_key.push_str(key);
@@ -76,7 +76,7 @@ pub fn parse_until_key<'a>(file_content: &'a str, key: &'a str) -> IResult<&'a s
     Ok((line, value))
 }
 
-/// For parsing up to the next occurence of a desired key, where keys are unquoted
+/// For parsing up to the next occurrence of a desired key, where keys are unquoted
 pub fn parse_until_key_unquoted<'a>(
     file_content: &'a str,
     key: &'a str,

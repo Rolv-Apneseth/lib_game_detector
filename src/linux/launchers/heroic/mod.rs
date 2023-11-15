@@ -60,7 +60,7 @@ fn parse_game_from_library(file_content: &str) -> IResult<&str, ParsableLibraryD
     ))
 }
 
-/// Utitlity function which parses all (installed) games from a given Heroic Games Launcher library file
+/// Utility function which parses all (installed) games from a given Heroic Games Launcher library file
 #[tracing::instrument]
 fn parse_all_games_from_library(
     path_library: &Path,

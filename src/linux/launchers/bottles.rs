@@ -319,3 +319,38 @@ impl Launcher for Bottles {
             .collect())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::linux::test_utils::get_mock_file_system_path;
+
+    use super::*;
+
+    #[test]
+    fn test_bottles_launcher() -> Result<(), anyhow::Error> {
+        let path_file_system_mock = get_mock_file_system_path();
+        let launcher = Bottles::new(&path_file_system_mock.join(".local/share"));
+
+        assert!(launcher.is_detected());
+
+        let games = launcher.get_detected_games()?;
+        assert_eq!(games.len(), 4);
+
+        assert_eq!(games[0].title, "Warcraft III");
+        assert_eq!(games[1].title, "GOG Galaxy");
+        assert_eq!(games[2].title, "EA Client");
+        assert_eq!(games[3].title, "Estlcam");
+
+        assert!(games[0].path_game_dir.is_some());
+        assert!(games[1].path_game_dir.is_none());
+        assert!(games[2].path_game_dir.is_none());
+        assert!(games[3].path_game_dir.is_none());
+
+        assert!(games[0].path_box_art.is_some());
+        assert!(games[1].path_box_art.is_some());
+        assert!(games[2].path_box_art.is_some());
+        assert!(games[3].path_box_art.is_none());
+
+        Ok(())
+    }
+}

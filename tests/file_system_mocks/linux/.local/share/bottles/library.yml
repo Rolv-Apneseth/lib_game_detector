@@ -1,0 +1,32 @@
+1224a08e-e405-48f1-a27d-595c03134629:
+  bottle:
+    name: Warcraft Bottle
+    path: Warcraft-Bottle
+  icon: /not/an/icon.png
+  id: 77d56ca0-7aea-47c6-a1d3-d74fbdbc48ea
+  name: Warcraft III
+  thumbnail: grid:89e03384-112f-4e1a-b0dc-618c584c84bb.png
+1e6bfe8f-93cf-4575-890d-94a92541a6a0:
+  bottle:
+    name: gog
+    path: gog
+  icon: /not/an/icon.png
+  id: b11883c1-7b00-43a3-baa4-91e396d5c549
+  name: GOG Galaxy
+  thumbnail: grid:3a3c5cf4-4e95-4439-b806-3de55bdf9668.png
+6723de81-4488-4f56-b2a5-824161b32e10:
+  bottle:
+    name: gog
+    path: gog
+  icon: /not/an/icon.png
+  id: 824dcd4a-3413-476b-acb6-53844f85646e
+  name: EA Client
+  thumbnail: grid:23c0684a-6ea5-4ac2-86e4-a1f4c8b9dd73.png
+ec64585b-7e1a-4b24-9026-5d4085d4908a:
+  bottle:
+    name: gog
+    path: gog
+  icon: com.usebottles.bottles-program
+  id: bdba364a-aac0-493d-b779-d95bf2d83728
+  name: Estlcam
+  thumbnail: null

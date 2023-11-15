@@ -19,7 +19,7 @@ Install with `cargo add lib_game_detector` or add the following to your `Cargo.t
 
 ```toml
 [dependencies]
-lib_game_detector = "0.0.2"
+lib_game_detector = "0.0.3"
 ```
 
 ## Usage
@@ -46,11 +46,12 @@ library to find games and their box art to use for displaying in a launcher
   - Non-steam games are currently not supported
 - Heroic Games Launcher (Legendary, Nile and GOG)
 - Lutris
+- Bottles
+  - Only lists entries included in the Library
 
 ## TODO
 
 - Support additional game sources
-  - Bottles
   - Steam's non-Steam games
   - Games available on `$PATH`, such as 0 A.D.
 - Support Windows

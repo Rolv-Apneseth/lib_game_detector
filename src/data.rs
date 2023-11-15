@@ -2,8 +2,9 @@ use std::{
     fmt::{self, Debug, Formatter},
     io,
     path::PathBuf,
+    process::Command,
     rc::Rc,
-    sync::Arc,
+    sync::{Arc, Mutex},
 };
 
 use thiserror::Error;
@@ -12,10 +13,11 @@ use thiserror::Error;
 #[derive(Debug, Clone)]
 pub struct Game {
     pub title: String,
-    pub launch_command: String,
     pub path_box_art: Option<PathBuf>,
     pub path_game_dir: Option<PathBuf>,
+    pub launch_command: Arc<Mutex<Command>>,
 }
+
 pub type GamesSlice = Arc<[Game]>;
 
 /// Custom error type to be used in the custom GamesSlice Result type
@@ -39,6 +41,7 @@ pub enum SupportedLaunchers {
     HeroicGamesEpicGames,
     HeroicGOG,
     Lutris,
+    Bottles,
 }
 impl Debug for SupportedLaunchers {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
@@ -53,6 +56,7 @@ impl Debug for SupportedLaunchers {
                     "Heroic Games Launcher - Epic Games Store",
                 SupportedLaunchers::HeroicGOG => "Heroic Games Launcher - GOG",
                 SupportedLaunchers::Lutris => "Lutris",
+                SupportedLaunchers::Bottles => "Bottles",
             }
         )
     }

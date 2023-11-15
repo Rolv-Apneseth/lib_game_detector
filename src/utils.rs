@@ -1,8 +1,20 @@
-use std::path::PathBuf;
+use std::{
+    path::PathBuf,
+    process::Command,
+    sync::{Arc, Mutex},
+};
 
 /// Cleans up parsed game title
 pub fn clean_game_title(title: &str) -> String {
     title.replace(['™', '®'], "")
+}
+
+/// Returns a std::process::Command from a given command str and it's arguments
+pub fn get_launch_command(command: &str, args: Arc<[&str]>) -> Arc<Mutex<Command>> {
+    let mut command = Command::new(command);
+    command.args(args.iter());
+
+    Arc::new(Mutex::new(command))
 }
 
 /// Returns an Option containing the given PathBuf, if the PathBuf points to an actual file

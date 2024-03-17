@@ -1,14 +1,15 @@
 use std::{
     io::{self},
     path::{Path, PathBuf},
-    sync::Arc,
 };
 use tracing::{debug, error, trace, warn};
 
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
-    linux::launchers::heroic::parse_all_games_from_library,
-    utils::{get_launch_command, some_if_dir, some_if_file},
+    linux::launchers::heroic::{
+        get_heroic_config_path, get_launch_command_for_heroic_source, parse_all_games_from_library,
+    },
+    utils::{some_if_dir, some_if_file},
 };
 
 use super::ParsableLibraryData;
@@ -17,10 +18,13 @@ use super::ParsableLibraryData;
 pub struct HeroicAmazon {
     path_nile_library: PathBuf,
     path_icons: PathBuf,
+    is_using_flatpak: bool,
 }
 
 impl HeroicAmazon {
-    pub fn new(path_heroic_config: &Path) -> Self {
+    pub fn new(path_home: &Path, path_config: &Path) -> Self {
+        let (path_heroic_config, is_using_flatpak) = get_heroic_config_path(path_home, path_config);
+
         let path_nile_library = path_heroic_config.join("store_cache/nile_library.json");
         let path_icons = path_heroic_config.join("icons");
 
@@ -32,6 +36,7 @@ impl HeroicAmazon {
         HeroicAmazon {
             path_nile_library,
             path_icons,
+            is_using_flatpak,
         }
     }
 
@@ -81,10 +86,8 @@ impl Launcher for HeroicAmazon {
                 title,
             } = parsed_data;
 
-                let launch_command = get_launch_command(
-                    "xdg-open",
-                    Arc::new([&format!("heroic://launch/nile/{app_id}")]),
-                );
+                let launch_command = get_launch_command_for_heroic_source("nile", &app_id, self.is_using_flatpak);
+                trace!("Heroic (Amazon) - launch command for '{title}': {launch_command:?}");
 
                 let path_game_dir = some_if_dir(PathBuf::from(install_path));
                 let path_box_art = some_if_file(self.path_icons.join(format!("{app_id}.jpg")));
@@ -106,13 +109,17 @@ impl Launcher for HeroicAmazon {
 
 #[cfg(test)]
 mod tests {
-    use crate::linux::test_utils::get_mock_heroic_config_path;
+    use crate::linux::test_utils::get_mock_file_system_path;
 
     use super::*;
 
     #[test]
     fn test_heroic_amazon_launcher() -> Result<(), anyhow::Error> {
-        let launcher = HeroicAmazon::new(&get_mock_heroic_config_path());
+        let path_file_system_mock = get_mock_file_system_path();
+        let launcher = HeroicAmazon::new(
+            &path_file_system_mock,
+            &path_file_system_mock.join(".config"),
+        );
 
         assert!(launcher.is_detected());
 

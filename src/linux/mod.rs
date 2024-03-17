@@ -31,19 +31,18 @@ impl GamesDetectorLinux {
     }
 
     pub fn get_supported_launchers(base_dirs: &BaseDirs) -> LaunchersSlice {
+        let path_home = base_dirs.home_dir();
         let path_config = base_dirs.config_dir();
         let path_cache = base_dirs.cache_dir();
         let path_data = base_dirs.data_dir();
 
-        let path_heroic_config = path_config.join("heroic");
-
         Rc::new([
-            Arc::new(Steam::new(path_data)),
-            Arc::new(HeroicGOG::new(&path_heroic_config)),
-            Arc::new(HeroicEpic::new(&path_heroic_config)),
-            Arc::new(HeroicAmazon::new(&path_heroic_config)),
-            Arc::new(Lutris::new(path_config, path_cache)),
-            Arc::new(Bottles::new(path_data)),
+            Arc::new(Steam::new(path_home, path_data)),
+            Arc::new(HeroicGOG::new(path_home, path_config)),
+            Arc::new(HeroicEpic::new(path_home, path_config)),
+            Arc::new(HeroicAmazon::new(path_home, path_config)),
+            Arc::new(Lutris::new(path_home, path_config, path_cache)),
+            Arc::new(Bottles::new(path_home, path_data)),
         ])
     }
 }
@@ -68,8 +67,8 @@ impl GamesDetector for GamesDetectorLinux {
         self.get_all_detected_games().map(|slice| {
             slice
                 .iter()
-                .cloned()
                 .filter(|game| game.path_box_art.is_some())
+                .cloned()
                 .collect()
         })
     }
@@ -121,9 +120,5 @@ pub mod test_utils {
 
     pub fn get_mock_file_system_path() -> PathBuf {
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/file_system_mocks/linux")
-    }
-
-    pub fn get_mock_heroic_config_path() -> PathBuf {
-        get_mock_file_system_path().join(".config/heroic")
     }
 }

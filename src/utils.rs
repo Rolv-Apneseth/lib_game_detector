@@ -10,11 +10,30 @@ pub fn clean_game_title(title: &str) -> String {
 }
 
 /// Returns a std::process::Command from a given command str and it's arguments
-pub fn get_launch_command(command: &str, args: Arc<[&str]>) -> Arc<Mutex<Command>> {
+pub fn get_launch_command<'a>(
+    command: &str,
+    args: impl IntoIterator<Item = &'a str>,
+    env_vars: impl IntoIterator<Item = (&'a str, &'a str)>,
+) -> Arc<Mutex<Command>> {
     let mut command = Command::new(command);
-    command.args(args.iter());
+    command.envs(env_vars).args(args);
 
     Arc::new(Mutex::new(command))
+}
+
+pub fn get_launch_command_flatpak<'a>(
+    bottle_name: &str,
+    flatpak_args: impl IntoIterator<Item = &'a str>,
+    other_args: impl IntoIterator<Item = &'a str>,
+    env_vars: impl IntoIterator<Item = (&'a str, &'a str)>,
+) -> Arc<Mutex<Command>> {
+    let command = get_launch_command("flatpak", flatpak_args, env_vars);
+
+    if let Ok(mut c) = command.lock() {
+        c.arg("run").arg(bottle_name).args(other_args);
+    };
+
+    command
 }
 
 /// Returns an Option containing the given PathBuf, if the PathBuf points to an actual file

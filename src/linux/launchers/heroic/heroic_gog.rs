@@ -3,14 +3,14 @@ use std::{
     fs::read_to_string,
     io::{self},
     path::{Path, PathBuf},
-    sync::Arc,
 };
 use tracing::{debug, error, trace, warn};
 
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
+    linux::launchers::heroic::{get_heroic_config_path, get_launch_command_for_heroic_source},
     parsers::{parse_double_quoted_value, parse_until_key},
-    utils::{clean_game_title, get_launch_command, some_if_dir, some_if_file},
+    utils::{clean_game_title, some_if_dir, some_if_file},
 };
 
 #[derive(Debug)]
@@ -59,10 +59,12 @@ fn parse_game_from_gog_installed(file_content: &str) -> IResult<&str, ParsableGO
 pub struct HeroicGOG {
     path_gog_installed_games: PathBuf,
     path_icons: PathBuf,
+    is_using_flatpak: bool,
 }
 
 impl HeroicGOG {
-    pub fn new(path_heroic_config: &Path) -> Self {
+    pub fn new(path_home: &Path, path_config: &Path) -> Self {
+        let (path_heroic_config, is_using_flatpak) = get_heroic_config_path(path_home, path_config);
         let path_gog_installed_games = path_heroic_config.join("gog_store/installed.json");
         let path_icons = path_heroic_config.join("icons");
 
@@ -74,6 +76,7 @@ impl HeroicGOG {
         HeroicGOG {
             path_gog_installed_games,
             path_icons,
+            is_using_flatpak,
         }
     }
 
@@ -138,10 +141,9 @@ impl Launcher for HeroicGOG {
                     title,
                 } = parsed_data;
 
-                let launch_command = get_launch_command(
-                    "xdg-open",
-                    Arc::new([&format!("heroic://launch/gog/{app_id}")]),
-                );
+                let launch_command =
+                    get_launch_command_for_heroic_source("gog", &app_id, self.is_using_flatpak);
+                trace!("Heroic (GOG) - launch command for '{title}': {launch_command:?}");
 
                 let path_game_dir = some_if_dir(PathBuf::from(install_path));
                 let path_box_art = some_if_file(self.path_icons.join(format!("{app_id}.png")));
@@ -164,13 +166,17 @@ impl Launcher for HeroicGOG {
 
 #[cfg(test)]
 mod tests {
-    use crate::linux::test_utils::get_mock_heroic_config_path;
+    use crate::linux::test_utils::get_mock_file_system_path;
 
     use super::*;
 
     #[test]
     fn test_heroic_gog_launcher() -> Result<(), anyhow::Error> {
-        let launcher = HeroicGOG::new(&get_mock_heroic_config_path());
+        let path_file_system_mock = get_mock_file_system_path();
+        let launcher = HeroicGOG::new(
+            &path_file_system_mock,
+            &path_file_system_mock.join(".config"),
+        );
 
         assert!(launcher.is_detected());
 

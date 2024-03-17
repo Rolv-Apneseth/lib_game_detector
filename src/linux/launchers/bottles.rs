@@ -19,7 +19,9 @@ use crate::{
         parse_not_alphanumeric, parse_till_end_of_line, parse_unquoted_value,
         parse_until_key_unquoted,
     },
-    utils::{clean_game_title, get_launch_command, some_if_dir, some_if_file},
+    utils::{
+        clean_game_title, get_launch_command, get_launch_command_flatpak, some_if_dir, some_if_file,
+    },
 };
 
 #[derive(Debug, Clone)]
@@ -146,27 +148,38 @@ fn parse_game_from_library<'a>(file_content: &'a str) -> IResult<&'a str, Parsab
 pub struct Bottles {
     path_bottles_dir: PathBuf,
     path_bottles_library: PathBuf,
+    is_using_flatpak: bool,
 }
 
 impl Bottles {
-    pub fn new(path_data: &Path) -> Self {
-        let path_bottles_data = path_data.join("bottles");
+    pub fn new(path_home: &Path, path_data: &Path) -> Self {
+        let mut path_bottles_data = path_data.join("bottles");
+        let mut is_using_flatpak = false;
+
+        if !path_bottles_data.is_dir() {
+            trace!("Bottles - Attempting to fall back to flatpak directory");
+            is_using_flatpak = true;
+            path_bottles_data = path_home.join(".var/app/com.usebottles.bottles/data/bottles");
+        }
+
         let path_bottles_dir = path_bottles_data.join("bottles");
         let path_bottles_library = path_bottles_data.join("library.yml");
 
+        debug!("Bottles - using flatpak: {is_using_flatpak}");
         debug!(
-            "Bottles data directory exists: {}",
+            "Bottles - data directory exists: {}",
             path_bottles_data.is_dir()
         );
-        debug!("Bottles directory exists: {}", path_bottles_dir.is_dir());
+        debug!("Bottles - directory exists: {}", path_bottles_dir.is_dir());
         debug!(
-            "Bottles library yaml file exists: {}",
+            "Bottles - library yaml file exists: {}",
             path_bottles_library.is_file()
         );
 
         Bottles {
             path_bottles_dir,
             path_bottles_library,
+            is_using_flatpak,
         }
     }
 
@@ -291,10 +304,20 @@ impl Launcher for Bottles {
                      bottle_subdir,
                      game_dir,
                  }| {
-                    let launch_command = get_launch_command(
-                        "bottles-cli",
-                        Arc::new(["run", "-p", &title, "-b", &bottle_name]),
-                    );
+                    let launch_command = {
+                        let base_args = ["run", "-p", &title, "-b", &bottle_name];
+                        if self.is_using_flatpak {
+                            get_launch_command_flatpak(
+                                "com.usebottles.bottles",
+                                ["--command=bottles-cli"],
+                                base_args,
+                                [],
+                            )
+                        } else {
+                            get_launch_command("bottles-cli", base_args, [])
+                        }
+                    };
+                    trace!("Bottles - launch command for '{title}': {launch_command:?}");
 
                     let path_box_art = box_art.clone().and_then(|s| {
                         let path = self
@@ -329,7 +352,10 @@ mod tests {
     #[test]
     fn test_bottles_launcher() -> Result<(), anyhow::Error> {
         let path_file_system_mock = get_mock_file_system_path();
-        let launcher = Bottles::new(&path_file_system_mock.join(".local/share"));
+        let launcher = Bottles::new(
+            &path_file_system_mock,
+            &path_file_system_mock.join(".local/share"),
+        );
 
         assert!(launcher.is_detected());
 

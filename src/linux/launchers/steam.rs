@@ -265,19 +265,21 @@ impl Launcher for Steam {
 
 #[cfg(test)]
 mod tests {
-    use crate::linux::test_utils::get_mock_file_system_path;
-
     use super::*;
+    use crate::linux::test_utils::get_mock_file_system_path;
+    use test_case::test_case;
 
-    #[test]
-    fn test_steam_launcher() {
+    #[test_case(false, ".local/share"; "standard")]
+    #[test_case(true, "invalid/data/path"; "flatpak")]
+    fn test_steam_launcher(is_testing_flatpak: bool, path_data: &str) {
         let path_files_system_mock = get_mock_file_system_path();
         let launcher = Steam::new(
             &path_files_system_mock,
-            &path_files_system_mock.join(".local/share"),
+            &path_files_system_mock.join(path_data),
         );
 
         assert!(launcher.is_detected());
+        assert!(launcher.is_using_flatpak == is_testing_flatpak);
 
         let games_result = launcher.get_detected_games();
 

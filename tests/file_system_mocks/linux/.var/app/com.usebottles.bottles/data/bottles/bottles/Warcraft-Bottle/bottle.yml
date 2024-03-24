@@ -1,0 +1,17 @@
+Arch: win64
+CompatData: ''
+Creation_Date: '2023-11-04 16:15:26.499013'
+Custom_Path: false
+DLL_Overrides: {}
+DXVK: dxvk-2.2
+Environment: Gaming
+Environment_Variables: {}
+External_Programs:
+    77d56ca0-7aea-47c6-a1d3-d74fbdbc48ea:
+        executable: Warcraft III.exe
+        folder: /
+        id: 77d56ca0-7aea-47c6-a1d3-d74fbdbc48ea
+        name: Warcraft III
+        path: home
+Language: sys
+Name: Warcraft Bottle

@@ -109,19 +109,24 @@ impl Launcher for HeroicAmazon {
 
 #[cfg(test)]
 mod tests {
-    use crate::linux::test_utils::get_mock_file_system_path;
-
     use super::*;
+    use crate::linux::test_utils::get_mock_file_system_path;
+    use test_case::test_case;
 
-    #[test]
-    fn test_heroic_amazon_launcher() -> Result<(), anyhow::Error> {
+    #[test_case(false, ".config"; "standard")]
+    #[test_case(true, "invalid/data/path"; "flatpak")]
+    fn test_heroic_amazon_launcher(
+        is_testing_flatpak: bool,
+        path_config: &str,
+    ) -> Result<(), anyhow::Error> {
         let path_file_system_mock = get_mock_file_system_path();
         let launcher = HeroicAmazon::new(
             &path_file_system_mock,
-            &path_file_system_mock.join(".config"),
+            &path_file_system_mock.join(path_config),
         );
 
         assert!(launcher.is_detected());
+        assert!(launcher.is_using_flatpak == is_testing_flatpak);
 
         let games = launcher.get_detected_games()?;
 

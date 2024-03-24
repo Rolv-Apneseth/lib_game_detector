@@ -36,12 +36,12 @@ pub fn get_launch_command_flatpak<'a>(
     command
 }
 
-/// Returns an Option containing the given PathBuf, if the PathBuf points to an actual file
+/// Returns an Option containing the given `PathBuf`, if the `PathBuf` points to an actual file
 pub fn some_if_file(path: PathBuf) -> Option<PathBuf> {
     path.is_file().then_some(path)
 }
 
-/// Returns an Option containing the given PathBuf, if the PathBuf points to an actual directory
+/// Returns an Option containing the given `PathBuf`, if the `PathBuf` points to an actual directory
 pub fn some_if_dir(path: PathBuf) -> Option<PathBuf> {
     path.is_dir().then_some(path)
 }
@@ -49,11 +49,12 @@ pub fn some_if_dir(path: PathBuf) -> Option<PathBuf> {
 #[cfg(test)]
 pub mod test {
     use super::*;
+    use test_case::test_case;
 
-    #[test]
-    fn test_clean_game_title() {
-        assert_eq!(clean_game_title("Soon™"), String::from("Soon"));
-        assert_eq!(clean_game_title("Game®"), String::from("Game"));
-        assert_eq!(clean_game_title("®T™i®t™l®e™"), String::from("Title"));
+    #[test_case("Soon™", "Soon")]
+    #[test_case("Game®", "Game")]
+    #[test_case("®T™i®t™l®e™", "Title")]
+    fn test_clean_game_title(dirty: &str, clean: &str) {
+        assert_eq!(clean_game_title(dirty), String::from(clean));
     }
 }

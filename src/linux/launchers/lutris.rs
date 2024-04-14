@@ -11,7 +11,9 @@ use tracing::{debug, error, trace, warn};
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
     parsers::{parse_double_quoted_key_value, parse_unquoted_value, parse_until_key_unquoted},
-    utils::{clean_game_title, get_launch_command, some_if_dir, some_if_file},
+    utils::{
+        clean_game_title, get_launch_command, get_launch_command_flatpak, some_if_dir, some_if_file,
+    },
 };
 
 #[derive(Debug, Clone)]
@@ -127,18 +129,34 @@ pub struct Lutris {
     path_games_dir: PathBuf,
     path_box_art_dir: PathBuf,
     path_game_paths_json: PathBuf,
+    is_using_flatpak: bool,
 }
 
 impl Lutris {
-    pub fn new(path_config: &Path, path_cache: &Path) -> Self {
-        let path_config_lutris = path_config.join("lutris");
-        let path_cache_lutris = path_cache.join("lutris");
+    pub fn new(path_home: &Path, path_config: &Path, path_cache: &Path) -> Self {
+        let mut path_config_lutris = path_config.join("lutris");
+        let mut path_cache_lutris = path_cache.join("lutris");
+        let mut path_box_art_dir = path_cache_lutris.join("coverart");
+        let mut is_using_flatpak = false;
+
+        if !path_config.is_dir() || !path_cache_lutris.is_dir() {
+            trace!("Attempting to fall back to flatpak directory");
+            is_using_flatpak = true;
+            let path_flatpak = path_home.join(".var/app/net.lutris.Lutris");
+            path_config_lutris = path_flatpak.join("data/lutris");
+            path_cache_lutris = path_flatpak.join("cache/lutris");
+            path_box_art_dir = path_flatpak.join("data/lutris/coverart");
+        }
 
         let path_games_dir = path_config_lutris.join("games");
-        let path_box_art_dir = path_cache_lutris.join("coverart");
         let path_game_paths_json = path_cache_lutris.join("game-paths.json");
 
-        debug!("Lutris games directory exists: {}", path_games_dir.is_dir());
+        debug!("Lutris - using flatpak: {is_using_flatpak}");
+        debug!(
+            "Lutris - games directory exists: {}",
+            path_games_dir.is_dir()
+        );
+        debug!("Lutris - games directory exists: {path_games_dir:?}");
         debug!(
             "Lutris box art directory exists: {}",
             path_box_art_dir.is_dir()
@@ -152,6 +170,7 @@ impl Lutris {
             path_games_dir,
             path_box_art_dir,
             path_game_paths_json,
+            is_using_flatpak,
         }
     }
 
@@ -168,7 +187,7 @@ impl Lutris {
 
         Ok(BufReader::new(game_paths_json_file)
             .lines()
-            .flatten()
+            .map_while(Result::ok)
             .filter_map(|line| {
                 parse_double_quoted_key_value(&line)
                     .map(|(_, (run_id, exe_path))| {
@@ -274,15 +293,18 @@ impl Launcher for Lutris {
                      title,
                      slug,
                  }| {
-                    let launch_command = get_launch_command(
-                        "env",
-                        Arc::new([
-                            "LUTRIS_SKIP_INIT=1",
-                            "lutris",
-                            &format!("lutris:rungameid/{run_id}"),
-                        ]),
-                    );
+                    let launch_command = {
+                        let env_vars = [("LUTRIS_SKIP_INIT", "1")];
+                        let game_run_arg = format!("lutris:rungameid/{run_id}");
+                        let args = [game_run_arg.as_str()];
+                        if self.is_using_flatpak {
+                            get_launch_command_flatpak("net.lutrsi.Lutris", [], args, env_vars)
+                        } else {
+                            get_launch_command("lutris", args, env_vars)
+                        }
+                    };
 
+                    debug!("{launch_command:?}");
                     let path_box_art =
                         some_if_file(self.path_box_art_dir.join(format!("{}.jpg", slug)));
                     let path_game_dir = some_if_dir(PathBuf::from(game_dir));
@@ -304,19 +326,25 @@ impl Launcher for Lutris {
 
 #[cfg(test)]
 mod tests {
-    use crate::linux::test_utils::get_mock_file_system_path;
-
     use super::*;
+    use crate::linux::test_utils::get_mock_file_system_path;
+    use test_case::test_case;
 
-    #[test]
-    fn test_lutris_launcher() -> Result<(), anyhow::Error> {
+    #[test_case(false, ".config"; "standard")]
+    #[test_case(true, "invalid/data/path"; "flatpak")]
+    fn test_lutris_launcher(
+        is_testing_flatpak: bool,
+        path_config: &str,
+    ) -> Result<(), anyhow::Error> {
         let path_file_system_mock = get_mock_file_system_path();
         let launcher = Lutris::new(
-            &path_file_system_mock.join(".config"),
+            &path_file_system_mock,
+            &path_file_system_mock.join(path_config),
             &path_file_system_mock.join(".cache"),
         );
 
         assert!(launcher.is_detected());
+        assert!(launcher.is_using_flatpak == is_testing_flatpak);
 
         let games = launcher.get_detected_games()?;
         assert_eq!(games.len(), 3);

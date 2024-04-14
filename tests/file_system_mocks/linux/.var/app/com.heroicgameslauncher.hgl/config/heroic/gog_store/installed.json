@@ -1,0 +1,30 @@
+{
+	"installed": [
+		{
+			"platform": "linux",
+			"executable": "",
+			"install_path": "/home",
+			"install_size": "2.19 GiB",
+			"is_dlc": false,
+			"version": null,
+			"appName": "1207664543",
+			"installedWithDLCs": false,
+			"language": "en",
+			"versionEtag": "",
+			"buildId": ""
+		},
+		{
+			"platform": "windows",
+			"executable": "",
+			"install_path": "/not_a_dir/Bread & Fred Demo",
+			"install_size": "205.58 MiB",
+			"is_dlc": false,
+			"version": "1.0.2",
+			"appName": "1122367125",
+			"installedWithDLCs": false,
+			"language": "en-US",
+			"versionEtag": "\"2557448440\"",
+			"buildId": "56195555927613307"
+		}
+	]
+}

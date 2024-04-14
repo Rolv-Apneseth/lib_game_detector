@@ -1,0 +1,76 @@
+game:
+  args: -opengl -SkipBuildPatchPrereq
+  exe: drive_c/Program Files (x86)/Epic Games/Launcher/Portal/Binaries/Win32/EpicGamesLauncher.exe
+  prefix: /not_a_dir
+game_slug: epic-games-store
+name: Epic Games Store
+requires: null
+script:
+  files:
+  - uplay: https://ubistatic3-a.akamaihd.net/orbit/launcher_installer/UbisoftConnectInstaller.exe
+  - epicsetup: https://launcher-public-service-prod06.ol.epicgames.com/launcher/api/installer/download/EpicGamesLauncherInstaller.msi
+  game:
+    args: -opengl -SkipBuildPatchPrereq
+    exe: drive_c/Program Files (x86)/Epic Games/Launcher/Portal/Binaries/Win32/EpicGamesLauncher.exe
+    prefix: $GAMEDIR
+  installer:
+  - task:
+      arch: win64
+      prefix: /not_a_dir
+      wine_path: /home/user/.local/share/lutris/runners/wine/lutris-GE-Proton8-5-x86_64/bin/wine
+  - write_file:
+      content: "overlay:\n  enabled: false\n  forceunhookgame: false\n  fps_enabled:\
+        \ false\n  warning_enabled: false\nuser:\n  closebehavior: CloseBehavior_Close\n\
+        user:\n  start_on_windows_start: false"
+      file: $GAMEDIR/drive_c/users/$USER/Local Settings/Application Data/Ubisoft Game
+        Launcher/settings.yml
+  - task:
+      app: corefonts
+      arch: win64
+      prefix: /not_a_dir
+      wine_path: /home/user/.local/share/lutris/runners/wine/lutris-GE-Proton8-5-x86_64/bin/wine
+  - task:
+      arch: win64
+      args: /i "/home/user/.cache/lutris/installer/epic-games-store/epicsetup/EpicGamesLauncherInstaller.msi"
+        /q
+      env:
+        DXVK_HUD: compiler
+        MESA_GL_VERSION_OVERRIDE: 4.4COMPAT
+        __GL_SHADER_DISK_CACHE: '1'
+        __GL_SHADER_DISK_CACHE_PATH: /not_a_dir
+      exclude_processes: EpicGamesLauncher.exe
+      executable: msiexec
+      prefix: /not_a_dir
+      wine_path: /home/user/.local/share/lutris/runners/wine/lutris-GE-Proton8-5-x86_64/bin/wine
+  - task:
+      arch: win64
+      args: /S
+      env:
+        DXVK_HUD: compiler
+        MESA_GL_VERSION_OVERRIDE: 4.4COMPAT
+        __GL_SHADER_DISK_CACHE: '1'
+        __GL_SHADER_DISK_CACHE_PATH: /not_a_dir
+      executable: /home/user/.cache/lutris/installer/epic-games-store/uplay/UbisoftConnectInstaller.exe
+      prefix: /not_a_dir
+      wine_path: /home/user/.local/share/lutris/runners/wine/lutris-GE-Proton8-5-x86_64/bin/wine
+  system:
+    env:
+      DXVK_HUD: compiler
+      MESA_GL_VERSION_OVERRIDE: 4.4COMPAT
+      __GL_SHADER_DISK_CACHE: 1
+      __GL_SHADER_DISK_CACHE_PATH: $GAMEDIR
+  wine:
+    version: lutris-GE-Proton8-5-x86_64
+slug: epic-games-store-standard
+system:
+  env:
+    DXVK_HUD: compiler
+    MESA_GL_VERSION_OVERRIDE: 4.4COMPAT
+    __GL_SHADER_DISK_CACHE: '1'
+    __GL_SHADER_DISK_CACHE_PATH: /not_a_dir
+  game_path: /not_a_dir
+variables: {}
+version: Standard
+wine:
+  version: lutris-GE-Proton8-5-x86_64
+year: null

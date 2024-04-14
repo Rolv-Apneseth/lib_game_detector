@@ -16,7 +16,9 @@ use tracing::{debug, error, trace, warn};
 use crate::{
     data::{Game, GamesParsingError, GamesResult, GamesSlice, Launcher, SupportedLaunchers},
     parsers::{parse_double_quoted_value, parse_until_key},
-    utils::{clean_game_title, get_launch_command, some_if_dir, some_if_file},
+    utils::{
+        clean_game_title, get_launch_command, get_launch_command_flatpak, some_if_dir, some_if_file,
+    },
 };
 
 struct ParsableManifestData {
@@ -69,6 +71,7 @@ fn parse_game_manifest(file_content: &str) -> IResult<&str, ParsableManifestData
 pub struct SteamLibrary<'steamlibrary> {
     path_library: PathBuf,
     path_steam_dir: &'steamlibrary Path,
+    is_using_flatpak: bool,
 }
 impl<'steamlibrary> SteamLibrary<'steamlibrary> {
     /// Find and return paths of the app manifest files, if they exist
@@ -112,8 +115,15 @@ impl<'steamlibrary> SteamLibrary<'steamlibrary> {
             },
         ) = parse_game_manifest(&file_content).ok()?;
 
-        let launch_command =
-            get_launch_command("steam", Arc::new([&format!("steam://rungameid/{app_id}")]));
+        let launch_command = {
+            let game_run_arg = format!("steam://rungameid/{app_id}");
+            let args = [game_run_arg.as_str()];
+            if self.is_using_flatpak {
+                get_launch_command_flatpak("com.valvesoftware.Steam", [], args, [])
+            } else {
+                get_launch_command("steam", args, [])
+            }
+        };
 
         let path_game_dir = some_if_dir(
             self.path_library
@@ -165,14 +175,25 @@ impl<'steamlibrary> SteamLibrary<'steamlibrary> {
 #[derive(Debug)]
 pub struct Steam {
     path_steam_dir: PathBuf,
+    is_using_flatpak: bool,
 }
 
 impl Steam {
-    pub fn new(path_data: &Path) -> Self {
-        let path_steam_dir = path_data.join("Steam");
+    pub fn new(path_home: &Path, path_data: &Path) -> Self {
+        let mut path_steam_dir = path_data.join("Steam");
+        let mut is_using_flatpak = false;
+
+        if !path_steam_dir.is_dir() {
+            is_using_flatpak = true;
+            path_steam_dir = path_home.join(".var/app/com.valvesoftware.Steam/data/Steam")
+        };
+
         debug!("Steam dir path exists: {}", path_steam_dir.is_dir());
 
-        Steam { path_steam_dir }
+        Steam {
+            path_steam_dir,
+            is_using_flatpak,
+        }
     }
 
     /// Get all available steam libraries by parsing the `libraryfolders.vdf` file
@@ -184,13 +205,14 @@ impl Steam {
 
         Ok(BufReader::new(File::open(libraries_vdg_path)?)
             .lines()
-            .flatten()
+            .map_while(Result::ok)
             .filter_map(|line| {
                 parse_double_quoted_value(&line, "path")
                     .ok()
                     .map(|(_, library_path)| SteamLibrary {
                         path_library: PathBuf::from(library_path),
                         path_steam_dir: &self.path_steam_dir,
+                        is_using_flatpak: self.is_using_flatpak,
                     })
             })
             .collect())
@@ -243,15 +265,21 @@ impl Launcher for Steam {
 
 #[cfg(test)]
 mod tests {
-    use crate::linux::test_utils::get_mock_file_system_path;
-
     use super::*;
+    use crate::linux::test_utils::get_mock_file_system_path;
+    use test_case::test_case;
 
-    #[test]
-    fn test_steam_launcher() {
-        let launcher = Steam::new(&get_mock_file_system_path().join(".local/share"));
+    #[test_case(false, ".local/share"; "standard")]
+    #[test_case(true, "invalid/data/path"; "flatpak")]
+    fn test_steam_launcher(is_testing_flatpak: bool, path_data: &str) {
+        let path_files_system_mock = get_mock_file_system_path();
+        let launcher = Steam::new(
+            &path_files_system_mock,
+            &path_files_system_mock.join(path_data),
+        );
 
         assert!(launcher.is_detected());
+        assert!(launcher.is_using_flatpak == is_testing_flatpak);
 
         let games_result = launcher.get_detected_games();
 
@@ -276,10 +304,12 @@ mod tests {
             SteamLibrary {
                 path_library: path_libs_dir.join("1"),
                 path_steam_dir,
+                is_using_flatpak: false,
             },
             SteamLibrary {
                 path_library: path_libs_dir.join("2"),
                 path_steam_dir,
+                is_using_flatpak: false,
             },
         ];
 

@@ -1,0 +1,62 @@
+{
+	"library": [
+		{
+			"app_name": "amzn1.adg.product.a9660e7a-8760-4d78-888d-226e4ad04ecf",
+			"art_cover": "https://m.media-amazon.com/images/I/71pmzZQCBBL.jpg",
+			"art_square": "https://m.media-amazon.com/images/I/71pmzZQCBBL.jpg",
+			"canRunOffline": true,
+			"install": {
+				"install_path": "/",
+				"install_size": "67 MiB",
+				"version": "001bb4fd-d3cc-4238-be59-bfe852a59c31",
+				"platform": "Windows"
+			},
+			"folder_name": "Metal Slug",
+			"is_installed": true,
+			"runner": "nile",
+			"title": "Metal Slug",
+			"description": "Metal Slug is the original entry in one of the most famous action game series ever released. It was originally released by SNK in 1996. Players control Marco and Tarma who belong to the Special Forces team known as the Peregrine Falcon Squad. They fight to defeat General Donald Morden, in an effort to take back their stolen weapon known as the Metal Slug.",
+			"developer": "Dotemu",
+			"is_linux_native": false,
+			"is_mac_native": false
+		},
+		{
+			"app_name": "amzn1.adg.product.21ead428-3fd5-4e96-a48d-416ba2200318",
+			"art_cover": "https://m.media-amazon.com/images/I/71R2itKPFUL.jpg",
+			"art_square": "https://m.media-amazon.com/images/I/71R2itKPFUL.jpg",
+			"canRunOffline": true,
+			"install": {
+				"install_path": "/not_a_dir/Metal Slug X",
+				"install_size": "102.47 MiB",
+				"version": "08f7c034-9782-4c1f-8e3f-f687026b26cc",
+				"platform": "Windows"
+			},
+			"folder_name": "Metal Slug X",
+			"is_installed": true,
+			"runner": "nile",
+			"title": "Metal Slug X",
+			"description": "Metal Slug X is an action shooting game released by SNK in 1999. It is a rearranged version of Metal Slug 2. Using Metal Slug 2 as a base, a variety of new weapons and enemies have been added. Furthermore, with position changes of bosses and more, the game's difficulty has been completely readjusted.",
+			"developer": "Dotemu",
+			"is_linux_native": false,
+			"is_mac_native": false
+		},
+		{
+			"app_name": "amzn1.adg.product.2bf7606d-d642-46ac-aae4-bb60175cfd2d",
+			"art_cover": "https://m.media-amazon.com/images/I/71obXWJ-jcL.jpg",
+			"art_square": "https://m.media-amazon.com/images/I/71obXWJ-jcL.jpg",
+			"canRunOffline": true,
+			"install": {},
+			"folder_name": "Star Wars The Force Unleashed",
+			"is_installed": false,
+			"runner": "nile",
+			"title": "Star Wars: The Force Unleashed",
+			"description": "Star Wars: The Force Unleashed Ultimate Sith Edition will show gamers the deepest, darkest side of the Force in a story that puts them on a collision course with Luke Skywalker himself. The Ultimate Sith Edition includes all of the original missions found in Star Wars: The Force Unleashed as well as content previously only available via download and an all-new exclusive bonus level. Star Wars: The Force Unleashed completely re-imagines the scope and scale of the Force and casts players as Darth Vader’s Secret Apprentice, unveiling new revelations about the Star Wars galaxy seen through the eyes of a mysterious new character armed with unprecedented powers.",
+			"developer": "LucasArts",
+			"is_linux_native": false,
+			"is_mac_native": false
+		}
+	],
+	"__timestamp": {
+		"library": "Sun Oct 22 2020 12:50:31 GMT+0100 (Irish Standard Time)"
+	}
+}

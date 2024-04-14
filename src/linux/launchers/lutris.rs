@@ -62,7 +62,13 @@ fn parse_game_yml<'a>(
     let (file_content, _) = parse_until_key_unquoted(file_content, key_exe)?;
     // let (mut file_content, exe_path) = parse_unquoted_value(file_content, key_exe)?;
     let (mut file_content, line) = take_until("\n")(file_content)?;
-    let executable_name = match line.rsplit_once('/').map(|t| t.1.to_owned()) {
+    let executable_name = match line
+        // First try to just take anything after the last '/'
+        .rsplit_once('/')
+        .map(|t| t.1.to_owned())
+        // If value does not include `/`, then the whole thing is the executable name
+        .or_else(|| parse_unquoted_value(line, "exe").map(|(_, exe)| exe).ok())
+    {
         Some(e) => e,
         None => {
             // TODO: Handle this better somehow. Can't figure out how to return a nom error.

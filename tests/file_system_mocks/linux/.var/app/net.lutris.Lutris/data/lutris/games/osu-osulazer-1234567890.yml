@@ -1,0 +1,17 @@
+game:
+  exe: osu.AppImage
+game_slug: osu
+name: osu!
+script:
+  files:
+  - appimage: https://github.com/ppy/osu/releases/latest/download/osu.AppImage
+  game:
+    exe: osu.AppImage
+  installer:
+  - move:
+      dst: $GAMEDIR
+      src: appimage
+  - chmodx: osu.AppImage
+slug: osu-osulazer
+version: osu!lazer
+year: 2007

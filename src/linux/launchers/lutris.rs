@@ -12,7 +12,8 @@ use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
     parsers::{parse_double_quoted_key_value, parse_unquoted_value, parse_until_key_unquoted},
     utils::{
-        clean_game_title, get_launch_command, get_launch_command_flatpak, some_if_dir, some_if_file,
+        clean_game_title, get_existing_image_path, get_launch_command, get_launch_command_flatpak,
+        some_if_dir,
     },
 };
 
@@ -27,6 +28,9 @@ pub struct ParsableGamePathsData {
 pub struct ParsableGameYmlData {
     executable_name: String,
     title: String,
+    // For some reason Lutris uses 2 different "slug" options, and images are mostly named using
+    // `game_slug` but sometimes use `slug` instead
+    game_slug: Option<String>,
     slug: String,
 }
 
@@ -35,6 +39,7 @@ pub struct ParsableDataCombined {
     game_dir: String,
     run_id: String,
     title: String,
+    game_slug: Option<String>,
     slug: String,
 }
 
@@ -44,6 +49,7 @@ impl ParsableDataCombined {
             game_dir: paths_data.game_dir,
             run_id: paths_data.run_id,
             title: yml_data.title,
+            game_slug: yml_data.game_slug,
             slug: yml_data.slug,
         }
     }
@@ -77,8 +83,27 @@ fn parse_game_yml<'a>(
         }
     };
 
+    // GAME_SLUG
+    let key_game_slug = "game_slug";
+    let mut game_slug = None;
+
+    // Use value parsed from file for the game_slug, if one is found
+    if let Ok((f, _)) = parse_until_key_unquoted(file_content, key_game_slug) {
+        let s: String;
+        (file_content, s) = parse_unquoted_value(f, key_game_slug)?;
+        game_slug = Some(s);
+    }
+
+    // TITLE
+    let key_title = "name";
+    let mut title: String = String::new();
+
+    if let Ok((f, _)) = parse_until_key_unquoted(file_content, key_title) {
+        (file_content, title) = parse_unquoted_value(f, key_title)?;
+    };
+
     // SLUG
-    let key_slug = "game_slug";
+    let key_slug = "slug";
     let slug: String;
 
     match parse_until_key_unquoted(file_content, key_slug) {
@@ -100,14 +125,6 @@ fn parse_game_yml<'a>(
         }
     }
 
-    // TITLE
-    let key_title = "name";
-    let mut title: String = String::new();
-
-    if let Ok((f, _)) = parse_until_key_unquoted(file_content, key_title) {
-        (file_content, title) = parse_unquoted_value(f, key_title)?;
-    };
-
     // Guess the title from the slug if it wasn't found in the file
     if title.is_empty() {
         let mut title_from_slug = slug.split('-').collect::<Vec<&str>>().join(" ");
@@ -124,6 +141,7 @@ fn parse_game_yml<'a>(
         Ok(ParsableGameYmlData {
             executable_name,
             title,
+            game_slug,
             slug,
         }),
     ))
@@ -297,6 +315,7 @@ impl Launcher for Lutris {
                      game_dir,
                      run_id,
                      title,
+                     game_slug,
                      slug,
                  }| {
                     let launch_command = {
@@ -311,8 +330,17 @@ impl Launcher for Lutris {
                     };
 
                     debug!("{launch_command:?}");
-                    let path_box_art =
-                        some_if_file(self.path_box_art_dir.join(format!("{}.jpg", slug)));
+
+                    let path_box_art = {
+                        let mut path = None;
+                        // First, check if a file name using the game_slug exists
+                        if let Some(s) = game_slug {
+                            path = get_existing_image_path(&self.path_box_art_dir, s);
+                        }
+                        // Otherwise, fallback to using the slug
+                        path.or_else(|| get_existing_image_path(&self.path_box_art_dir, slug))
+                    };
+
                     let path_game_dir = some_if_dir(PathBuf::from(game_dir));
 
                     trace!("Lutris - Game directory found for '{title}': {path_game_dir:?}");
@@ -353,19 +381,22 @@ mod tests {
         assert!(launcher.is_using_flatpak == is_testing_flatpak);
 
         let games = launcher.get_detected_games()?;
-        assert_eq!(games.len(), 3);
+        assert_eq!(games.len(), 4);
 
         assert_eq!(games[0].title, "GOG Galaxy");
         assert_eq!(games[1].title, "Epic Games Store");
         assert_eq!(games[2].title, "Warcraft 3");
+        assert_eq!(games[3].title, "osu!");
 
         assert!(games[0].path_game_dir.is_some());
         assert!(games[1].path_game_dir.is_none());
         assert!(games[2].path_game_dir.is_none());
+        assert!(games[3].path_game_dir.is_none());
 
         assert!(games[0].path_box_art.is_some());
         assert!(games[1].path_box_art.is_some());
         assert!(games[2].path_box_art.is_some());
+        assert!(games[3].path_box_art.is_some());
 
         Ok(())
     }

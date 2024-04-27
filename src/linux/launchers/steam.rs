@@ -281,6 +281,9 @@ mod tests {
         assert!(launcher.is_detected());
         assert!(launcher.is_using_flatpak == is_testing_flatpak);
 
+        // Minor test to ensure debug formatting for `SupportedLaunchers` works as intended
+        assert_eq!(format!("{:?}", launcher.get_launcher_type()), "Steam");
+
         let games_result = launcher.get_detected_games();
 
         // Library paths in `libraryfolders.vdf` mock are invalid library paths

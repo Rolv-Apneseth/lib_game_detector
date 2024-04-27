@@ -68,4 +68,10 @@ pub mod test {
     fn test_clean_game_title(dirty: &str, clean: &str) {
         assert_eq!(clean_game_title(dirty), String::from(clean));
     }
+
+    #[test]
+    fn test_get_existing_image_path() {
+        let base = PathBuf::new();
+        assert_eq!(get_existing_image_path(&base, "does_not_exist.jpg"), None);
+    }
 }

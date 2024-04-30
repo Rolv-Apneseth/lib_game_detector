@@ -14,7 +14,7 @@ use nom::IResult;
 use tracing::trace;
 
 use crate::{
-    parsers::{parse_double_quoted_value, parse_unquoted_json_value, parse_until_key},
+    parsers::{parse_until_key_json, parse_value_json, parse_value_json_unquoted},
     utils::{clean_game_title, get_launch_command, get_launch_command_flatpak},
 };
 
@@ -30,17 +30,13 @@ struct ParsableLibraryData {
 #[tracing::instrument(skip_all)]
 fn parse_game_from_library(file_content: &str) -> IResult<&str, ParsableLibraryData> {
     // ID
-    let key_id = "app_name";
-    let (file_content, _) = parse_until_key(file_content, key_id)?;
-    let (file_content, app_id) = parse_double_quoted_value(file_content, key_id)?;
+    let (file_content, app_id) = parse_value_json(file_content, "app_name")?;
 
     // Keep checkpoint of file content because `is_installed` comes after the `install_path`
     let file_content_checkpoint = file_content;
 
     // IS_INSTALLED
-    let key_installed = "is_installed";
-    let (file_content, _) = parse_until_key(file_content, key_installed)?;
-    let (file_content, is_installed) = parse_unquoted_json_value(file_content, key_installed)?;
+    let (file_content, is_installed) = parse_value_json_unquoted(file_content, "is_installed")?;
 
     // Continue to next game if not installed
     if is_installed == *"false" {
@@ -48,14 +44,10 @@ fn parse_game_from_library(file_content: &str) -> IResult<&str, ParsableLibraryD
     }
 
     // INSTALL_PATH
-    let key_path = "install_path";
-    let (file_content, _) = parse_until_key(file_content_checkpoint, key_path)?;
-    let (file_content, install_path) = parse_double_quoted_value(file_content, key_path)?;
+    let (file_content, install_path) = parse_value_json(file_content_checkpoint, "install_path")?;
 
     // TITLE
-    let key_title = "title";
-    let (file_content, _) = parse_until_key(file_content, key_title)?;
-    let (file_content, title) = parse_double_quoted_value(file_content, key_title)?;
+    let (file_content, title) = parse_value_json(file_content, "title")?;
 
     Ok((
         file_content,

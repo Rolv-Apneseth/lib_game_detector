@@ -10,7 +10,7 @@ use tracing::{debug, error, trace, warn};
 
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
-    parsers::{parse_double_quoted_key_value, parse_unquoted_value, parse_until_key_unquoted},
+    parsers::{parse_double_quoted_key_value, parse_until_key_yml, parse_value_yml},
     utils::{
         clean_game_title, get_existing_image_path, get_launch_command, get_launch_command_flatpak,
         some_if_dir,
@@ -65,7 +65,7 @@ fn parse_game_yml<'a>(
 ) -> IResult<&'a str, Result<ParsableGameYmlData, ()>> {
     // EXECUTABLE_NAME
     let key_exe = "exe";
-    let (file_content, _) = parse_until_key_unquoted(file_content, key_exe)?;
+    let (file_content, _) = parse_until_key_yml(file_content, key_exe)?;
     // let (mut file_content, exe_path) = parse_unquoted_value(file_content, key_exe)?;
     let (mut file_content, line) = take_until("\n")(file_content)?;
     let executable_name = match line
@@ -73,7 +73,7 @@ fn parse_game_yml<'a>(
         .rsplit_once('/')
         .map(|t| t.1.to_owned())
         // If value does not include `/`, then the whole thing is the executable name
-        .or_else(|| parse_unquoted_value(line, "exe").map(|(_, exe)| exe).ok())
+        .or_else(|| parse_value_yml(line, "exe").map(|(_, exe)| exe).ok())
     {
         Some(e) => e,
         None => {
@@ -88,9 +88,9 @@ fn parse_game_yml<'a>(
     let mut game_slug = None;
 
     // Use value parsed from file for the game_slug, if one is found
-    if let Ok((f, _)) = parse_until_key_unquoted(file_content, key_game_slug) {
+    if let Ok((f, _)) = parse_until_key_yml(file_content, key_game_slug) {
         let s: String;
-        (file_content, s) = parse_unquoted_value(f, key_game_slug)?;
+        (file_content, s) = parse_value_yml(f, key_game_slug)?;
         game_slug = Some(s);
     }
 
@@ -98,18 +98,18 @@ fn parse_game_yml<'a>(
     let key_title = "name";
     let mut title: String = String::new();
 
-    if let Ok((f, _)) = parse_until_key_unquoted(file_content, key_title) {
-        (file_content, title) = parse_unquoted_value(f, key_title)?;
+    if let Ok((f, _)) = parse_until_key_yml(file_content, key_title) {
+        (file_content, title) = parse_value_yml(f, key_title)?;
     };
 
     // SLUG
     let key_slug = "slug";
     let slug: String;
 
-    match parse_until_key_unquoted(file_content, key_slug) {
+    match parse_until_key_yml(file_content, key_slug) {
         // Use value parsed from file for the slug, if one is found
         Ok((f, _)) => {
-            (file_content, slug) = parse_unquoted_value(f, key_slug)?;
+            (file_content, slug) = parse_value_yml(f, key_slug)?;
         }
         // Otherwise attempt to read the slug from the file's name (usually in the form
         // `{slug}-{number}.yml`)

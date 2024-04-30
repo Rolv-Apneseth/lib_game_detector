@@ -15,7 +15,7 @@ use tracing::{debug, error, trace, warn};
 
 use crate::{
     data::{Game, GamesParsingError, GamesResult, GamesSlice, Launcher, SupportedLaunchers},
-    parsers::{parse_double_quoted_value, parse_until_key},
+    parsers::{parse_until_key_json, parse_value_json},
     utils::{
         clean_game_title, get_launch_command, get_launch_command_flatpak, some_if_dir, some_if_file,
     },
@@ -42,19 +42,13 @@ fn parse_manifest_filename(filename: &str) -> IResult<&str, &str> {
 #[tracing::instrument(skip_all)]
 fn parse_game_manifest(file_content: &str) -> IResult<&str, ParsableManifestData> {
     // ID
-    let key_id = "appid";
-    let (file_content, _) = parse_until_key(file_content, key_id)?;
-    let (file_content, app_id) = parse_double_quoted_value(file_content, key_id)?;
+    let (file_content, app_id) = parse_value_json(file_content, "appid")?;
 
     // TITLE
-    let key_title = "name";
-    let (file_content, _) = parse_until_key(file_content, key_title)?;
-    let (file_content, title) = parse_double_quoted_value(file_content, key_title)?;
+    let (file_content, title) = parse_value_json(file_content, "name")?;
 
     // INSTALL_DIR_PATH
-    let key_path = "installdir";
-    let (file_content, _) = parse_until_key(file_content, key_path)?;
-    let (file_content, install_dir_path) = parse_double_quoted_value(file_content, key_path)?;
+    let (file_content, install_dir_path) = parse_value_json(file_content, "installdir")?;
 
     Ok((
         file_content,
@@ -207,7 +201,7 @@ impl Steam {
             .lines()
             .map_while(Result::ok)
             .filter_map(|line| {
-                parse_double_quoted_value(&line, "path")
+                parse_value_json(&line, "path")
                     .ok()
                     .map(|(_, library_path)| SteamLibrary {
                         path_library: PathBuf::from(library_path),

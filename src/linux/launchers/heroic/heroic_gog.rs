@@ -9,7 +9,7 @@ use tracing::{debug, error, trace, warn};
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
     linux::launchers::heroic::{get_heroic_config_path, get_launch_command_for_heroic_source},
-    parsers::{parse_until_key_json, parse_value_json},
+    parsers::parse_value_json,
     utils::{clean_game_title, some_if_dir, some_if_file},
 };
 

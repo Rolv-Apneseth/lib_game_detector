@@ -36,10 +36,7 @@ pub fn parse_double_quoted_key_value(line: &str) -> IResult<&str, (&str, &str)> 
 /// Parses up to the next occurrence of a desired key in a `.json` file
 /// e.g. "keyName": value
 pub fn parse_until_key_json<'a>(file_content: &'a str, key: &'a str) -> IResult<&'a str, String> {
-    let mut quoted_key = String::with_capacity(key.len() + 2);
-    quoted_key.push('"');
-    quoted_key.push_str(key);
-    quoted_key.push('"');
+    let quoted_key = format!("\"{key}\"");
 
     let (file_content, _) = take_until(quoted_key.as_str())(file_content)?;
     Ok((file_content, quoted_key))
@@ -48,9 +45,7 @@ pub fn parse_until_key_json<'a>(file_content: &'a str, key: &'a str) -> IResult<
 /// Parses up to the next occurrence of a desired key in a `.yml` or `.json`-style file without quotes
 /// e.g. keyName: value
 pub fn parse_until_key_yml<'a>(file_content: &'a str, key: &'a str) -> IResult<&'a str, String> {
-    let mut key_with_colon = String::with_capacity(key.len() + 1);
-    key_with_colon.push_str(key);
-    key_with_colon.push(':');
+    let key_with_colon = format!("{key}:");
 
     let (file_content, _) = take_until(key_with_colon.as_str())(file_content)?;
     Ok((file_content, key_with_colon))
@@ -59,9 +54,7 @@ pub fn parse_until_key_yml<'a>(file_content: &'a str, key: &'a str) -> IResult<&
 /// Parses up to the next occurrence of a desired key in a `.cfg` file
 /// e.g. keyName=value
 pub fn parse_until_key_cfg<'a>(file_content: &'a str, key: &'a str) -> IResult<&'a str, String> {
-    let mut key_with_equals = String::with_capacity(key.len());
-    key_with_equals.push_str(key);
-    key_with_equals.push('=');
+    let key_with_equals = format!("{key}=");
 
     let (file_content, _) = take_until(key_with_equals.as_str())(file_content)?;
     Ok((file_content, key_with_equals))

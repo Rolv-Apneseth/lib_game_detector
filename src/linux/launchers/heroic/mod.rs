@@ -14,7 +14,7 @@ use nom::IResult;
 use tracing::trace;
 
 use crate::{
-    parsers::{parse_until_key_json, parse_value_json, parse_value_json_unquoted},
+    parsers::{parse_value_json, parse_value_json_unquoted},
     utils::{clean_game_title, get_launch_command, get_launch_command_flatpak},
 };
 

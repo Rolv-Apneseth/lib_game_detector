@@ -4,6 +4,7 @@ use self::launchers::{
     bottles::Bottles,
     heroic::{heroic_amazon::HeroicAmazon, heroic_epic::HeroicEpic, heroic_gog::HeroicGOG},
     lutris::Lutris,
+    minecraft::{at::MinecraftAT, prism::MinecraftPrism},
     steam::Steam,
 };
 use crate::data::{
@@ -43,6 +44,8 @@ impl GamesDetectorLinux {
             Arc::new(HeroicAmazon::new(path_home, path_config)),
             Arc::new(Lutris::new(path_home, path_config, path_cache)),
             Arc::new(Bottles::new(path_home, path_data)),
+            Arc::new(MinecraftPrism::new(path_home, path_data)),
+            Arc::new(MinecraftAT::new(path_home, path_data)),
         ])
     }
 }

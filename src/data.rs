@@ -42,6 +42,8 @@ pub enum SupportedLaunchers {
     HeroicGOG,
     Lutris,
     Bottles,
+    MinecraftPrism,
+    MinecraftAT,
 }
 impl Debug for SupportedLaunchers {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
@@ -57,6 +59,8 @@ impl Debug for SupportedLaunchers {
                 SupportedLaunchers::HeroicGOG => "Heroic Games Launcher - GOG",
                 SupportedLaunchers::Lutris => "Lutris",
                 SupportedLaunchers::Bottles => "Bottles",
+                SupportedLaunchers::MinecraftPrism => "Minecraft - PrismLauncher",
+                SupportedLaunchers::MinecraftAT => "Minecraft - ATLauncher",
             }
         )
     }

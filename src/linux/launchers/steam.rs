@@ -15,7 +15,7 @@ use tracing::{debug, error, trace, warn};
 
 use crate::{
     data::{Game, GamesParsingError, GamesResult, GamesSlice, Launcher, SupportedLaunchers},
-    parsers::{parse_until_key_json, parse_value_json},
+    parsers::parse_value_json,
     utils::{
         clean_game_title, get_launch_command, get_launch_command_flatpak, some_if_dir, some_if_file,
     },

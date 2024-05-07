@@ -8,6 +8,7 @@ use tracing::{error, trace};
 
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
+    linux::launchers::minecraft::get_minecraft_title,
     parsers::parse_value_json,
     utils::{get_launch_command, get_launch_command_flatpak, some_if_dir},
 };
@@ -99,7 +100,7 @@ impl Launcher for MinecraftAT {
                 trace!("Minecraft (AT) - Box art found for '{title}': {path_box_art:?}");
 
                 Game {
-                    title,
+                    title: get_minecraft_title(&title),
                     launch_command,
                     path_box_art,
                     path_game_dir,
@@ -135,8 +136,8 @@ mod tests {
         dbg!(&games);
         assert_eq!(games.len(), 2);
 
-        assert_eq!(games[0].title, "Sky Factory");
-        assert_eq!(games[1].title, "Fabulously Optimized");
+        assert_eq!(games[0].title, get_minecraft_title("Sky Factory"));
+        assert_eq!(games[1].title, get_minecraft_title("Fabulously Optimized"));
 
         assert!(games[0].path_game_dir.is_some());
         assert!(games[1].path_game_dir.is_some());

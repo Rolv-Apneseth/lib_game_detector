@@ -1,0 +1,11 @@
+{
+  "uuid": "fd5fe3aa-99fe-437a-b1a1-c9740c6e2400",
+  "launcher": {
+    "name": "Sky Factory",
+    "pack": "Sky Factory",
+    "description": "Calling this pack modded skyblock is like calling the Bat Mobile a \"car\". It's skyblock, but like you've never seen it before! High tech mods, full automation, and spawning in the void with nothing but a tree and a *single* piece of dirt between you and certain death!\r\n\r\nHave questions? Ask the current maintainer and dev: twitch.tv/darkosto or twitter.com/darkostoTV",
+    "packId": 190,
+    "externalPackId": 0,
+    "isPlayable": true
+  }
+}

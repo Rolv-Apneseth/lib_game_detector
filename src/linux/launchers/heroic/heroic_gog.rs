@@ -9,7 +9,7 @@ use tracing::{debug, error, trace, warn};
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
     linux::launchers::heroic::{get_heroic_config_path, get_launch_command_for_heroic_source},
-    parsers::{parse_double_quoted_value, parse_until_key},
+    parsers::parse_value_json,
     utils::{clean_game_title, some_if_dir, some_if_file},
 };
 
@@ -28,14 +28,10 @@ struct ParsableGOGInstalledData {
 #[tracing::instrument(skip_all)]
 fn parse_game_from_gog_installed(file_content: &str) -> IResult<&str, ParsableGOGInstalledData> {
     // INSTALL_PATH
-    let key_path = "install_path";
-    let (file_content, _) = parse_until_key(file_content, key_path)?;
-    let (file_content, install_path) = parse_double_quoted_value(file_content, key_path)?;
+    let (file_content, install_path) = parse_value_json(file_content, "install_path")?;
 
     // ID
-    let key_id = "appName";
-    let (file_content, _) = parse_until_key(file_content, key_id)?;
-    let (file_content, app_id) = parse_double_quoted_value(file_content, key_id)?;
+    let (file_content, app_id) = parse_value_json(file_content, "appName")?;
 
     // TITLE
     let Some(title) = install_path

@@ -1,0 +1,21 @@
+{
+  "uuid": "06a628e3-288c-4891-815e-613e6f36d85b",
+  "launcher": {
+    "name": "Fabulously Optimized",
+    "pack": "Fabulously Optimized",
+    "description": "Improve your graphics and performance with this simple modpack. 1.20.6 alpha!",
+    "packId": 0,
+    "externalPackId": 0,
+    "isPlayable": true,
+    "modrinthProject": {
+      "id": "1KVo5zza",
+      "slug": "fabulously-optimized",
+      "project_type": "modpack",
+      "title": "Fabulously Optimized",
+      "description": "Improve your graphics and performance with this simple modpack. 1.20.6 alpha!",
+      "published": "2022-02-10T06:28:19.045034Z",
+      "updated": "2024-04-30T07:59:07.881976Z",
+      "icon_url": "https://cdn.modrinth.com/data/1KVo5zza/d8152911f8fd5d7e9a8c499fe89045af81fe816e.png"
+    }
+  }
+}

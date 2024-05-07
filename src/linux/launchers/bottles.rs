@@ -16,8 +16,7 @@ use tracing::{debug, error, trace, warn};
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
     parsers::{
-        parse_not_alphanumeric, parse_till_end_of_line, parse_unquoted_value,
-        parse_until_key_unquoted,
+        parse_not_alphanumeric, parse_till_end_of_line, parse_until_key_yml, parse_value_yml,
     },
     utils::{
         clean_game_title, get_launch_command, get_launch_command_flatpak, some_if_dir, some_if_file,
@@ -66,7 +65,7 @@ impl ParsableDataCombined {
 fn parse_game_from_bottle_yml(file_content: &str) -> IResult<&str, ParsableBottleYmlData> {
     // GAME DIR
     let key_game_dir = "folder";
-    let (file_content, _) = parse_until_key_unquoted(file_content, key_game_dir)?;
+    let (file_content, _) = parse_until_key_yml(file_content, key_game_dir)?;
     let (mut file_content, first_path_fragment) =
         preceded(take_till(|c| c == '/'), parse_till_end_of_line)(file_content)?;
 
@@ -90,8 +89,8 @@ fn parse_game_from_bottle_yml(file_content: &str) -> IResult<&str, ParsableBottl
 
     // ID
     let key_id = "id";
-    let (file_content, _) = parse_until_key_unquoted(file_content, key_id)?;
-    let (file_content, id) = parse_unquoted_value(file_content, key_id)?;
+    let (file_content, _) = parse_until_key_yml(file_content, key_id)?;
+    let (file_content, id) = parse_value_yml(file_content, key_id)?;
 
     Ok((file_content, ParsableBottleYmlData { id, game_dir }))
 }
@@ -101,27 +100,27 @@ fn parse_game_from_bottle_yml(file_content: &str) -> IResult<&str, ParsableBottl
 fn parse_game_from_library<'a>(file_content: &'a str) -> IResult<&'a str, ParsableLibraryData> {
     // BOTTLE NAME
     let key_bottle_name = "name";
-    let (file_content, _) = parse_until_key_unquoted(file_content, key_bottle_name)?;
-    let (file_content, bottle_name) = parse_unquoted_value(file_content, key_bottle_name)?;
+    let (file_content, _) = parse_until_key_yml(file_content, key_bottle_name)?;
+    let (file_content, bottle_name) = parse_value_yml(file_content, key_bottle_name)?;
 
     // BOTTLE SUBDIR
     let key_bottle_subdir = "path";
-    let (file_content, _) = parse_until_key_unquoted(file_content, key_bottle_subdir)?;
-    let (file_content, bottle_subdir) = parse_unquoted_value(file_content, key_bottle_subdir)?;
+    let (file_content, _) = parse_until_key_yml(file_content, key_bottle_subdir)?;
+    let (file_content, bottle_subdir) = parse_value_yml(file_content, key_bottle_subdir)?;
 
     // ID
     let key_id = "id";
-    let (file_content, _) = parse_until_key_unquoted(file_content, key_id)?;
-    let (file_content, id) = parse_unquoted_value(file_content, key_id)?;
+    let (file_content, _) = parse_until_key_yml(file_content, key_id)?;
+    let (file_content, id) = parse_value_yml(file_content, key_id)?;
 
     // TITLE
     let key_title = "name";
-    let (file_content, _) = parse_until_key_unquoted(file_content, key_title)?;
-    let (file_content, title) = parse_unquoted_value(file_content, key_title)?;
+    let (file_content, _) = parse_until_key_yml(file_content, key_title)?;
+    let (file_content, title) = parse_value_yml(file_content, key_title)?;
 
     // BOX ART
     let key_box_art = "thumbnail";
-    let (file_content, _) = parse_until_key_unquoted(file_content, key_box_art)?;
+    let (file_content, _) = parse_until_key_yml(file_content, key_box_art)?;
     let (file_content, _) = preceded(parse_not_alphanumeric, is_not(":"))(file_content)?;
 
     let box_art =

@@ -42,6 +42,8 @@ pub enum SupportedLaunchers {
     HeroicGOG,
     Lutris,
     Bottles,
+    MinecraftPrism,
+    MinecraftAT,
 }
 impl Debug for SupportedLaunchers {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
@@ -57,6 +59,8 @@ impl Debug for SupportedLaunchers {
                 SupportedLaunchers::HeroicGOG => "Heroic Games Launcher - GOG",
                 SupportedLaunchers::Lutris => "Lutris",
                 SupportedLaunchers::Bottles => "Bottles",
+                SupportedLaunchers::MinecraftPrism => "Minecraft - PrismLauncher",
+                SupportedLaunchers::MinecraftAT => "Minecraft - ATLauncher",
             }
         )
     }
@@ -64,19 +68,13 @@ impl Debug for SupportedLaunchers {
 
 // Game detection is divided up by "launchers" which are just specific sources of games
 // e.g. Steam, Heroic Games Launcher, etc.
-pub trait Launcher: Send {
+pub trait Launcher: Send + Debug {
     fn get_detected_games(&self) -> GamesResult;
     fn is_detected(&self) -> bool;
     fn get_launcher_type(&self) -> SupportedLaunchers;
 }
 pub type LaunchersSlice = Rc<[Arc<dyn Launcher>]>;
 pub type GamesPerLauncherSlice = Arc<[(SupportedLaunchers, GamesSlice)]>;
-
-impl Debug for dyn Launcher {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "Launcher: \n\t{:?}", self.get_launcher_type())
-    }
-}
 
 pub trait GamesDetector {
     fn get_detected_launchers(&self) -> LaunchersSlice;

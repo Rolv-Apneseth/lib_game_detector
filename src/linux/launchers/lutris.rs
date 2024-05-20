@@ -62,25 +62,24 @@ impl ParsableDataCombined {
 fn parse_game_yml<'a>(
     file_content: &'a str,
     file_path: &Path,
-) -> IResult<&'a str, Result<ParsableGameYmlData, ()>> {
+) -> IResult<&'a str, ParsableGameYmlData> {
     // EXECUTABLE_NAME
     let key_exe = "exe";
     let (file_content, _) = parse_until_key_yml(file_content, key_exe)?;
-    // let (mut file_content, exe_path) = parse_unquoted_value(file_content, key_exe)?;
     let (mut file_content, line) = take_until("\n")(file_content)?;
-    let executable_name = match line
+
+    let Some(executable_name) = line
         // First try to just take anything after the last '/'
         .rsplit_once('/')
         .map(|t| t.1.to_owned())
         // If value does not include `/`, then the whole thing is the executable name
         .or_else(|| parse_value_yml(line, "exe").map(|(_, exe)| exe).ok())
-    {
-        Some(e) => e,
-        None => {
-            // TODO: Handle this better somehow. Can't figure out how to return a nom error.
-            error!("Error parsing '{key_exe}' line in game yml file at {file_path:?}");
-            return Ok((file_content, Err(())));
-        }
+    else {
+        error!("Error parsing '{key_exe}' line in game yml file at {file_path:?}");
+        return Err(nom::Err::Failure(nom::error::make_error(
+            file_content,
+            nom::error::ErrorKind::Fail,
+        )));
     };
 
     // GAME_SLUG
@@ -138,12 +137,12 @@ fn parse_game_yml<'a>(
 
     Ok((
         file_content,
-        Ok(ParsableGameYmlData {
+        ParsableGameYmlData {
             executable_name,
             title,
             game_slug,
             slug,
-        }),
+        },
     ))
 }
 
@@ -264,7 +263,7 @@ impl Lutris {
             .ok()?;
 
         let (_, parsed_data) = parse_game_yml(file_content, &path_game_yml).ok()?;
-        parsed_data.ok()
+        Some(parsed_data)
     }
 
     /// Get all relevant game data by combining data from the `game-paths.json` file and

@@ -52,4 +52,4 @@ let all_games_from_steam = detector.get_all_detected_games_from_specific_launche
 
 ## License
 
-[AGPL-3.0](https://github.com/Rolv-Apneseth/lib_game_detector/blob/main/LICENSE)
+[AGPL-3.0](./LICENSE)

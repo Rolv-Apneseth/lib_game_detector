@@ -1,5 +1,5 @@
 //! [![Crate](https://img.shields.io/crates/v/lib_game_detector.svg)](https://crates.io/crates/lib_game_detector)
-//! ![License](https://img.shields.io/badge/License-AGPLv3-green.svg)
+//! [![License](https://img.shields.io/badge/License-AGPLv3-green.svg)](https://github.com/Rolv-Apneseth/lib_game_detector/blob/main/LICENSE)
 //!
 //! A Rust library for detecting and parsing data about games installed on the system. Currently
 //! only supports Linux.
@@ -17,7 +17,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! lib_game_detector = "0.0.3"
+//! lib_game_detector = "0.0.6"
 //! ```
 //!
 //! # Usage
@@ -34,9 +34,8 @@
 //!
 //! # Examples
 //!
+//! - See [rofi-games](https://github.com/Rolv-Apneseth/rofi-games) for an example which uses this library to find games and their box art to use for displaying in a launcher
 //! - Check the [examples folder](https://github.com/Rolv-Apneseth/lib_game_detector/tree/main/examples)
-//! - See [rofi-games](https://github.com/Rolv-Apneseth/rofi-games) for an example which uses this
-//! library to find games and their box art to use for displaying in a launcher
 //!
 //! # Currently supported game sources
 //!
@@ -46,13 +45,9 @@
 //! - Lutris
 //! - Bottles
 //!   - Only lists entries included in the Library
-//!
-//! # TODO
-//!
-//! - Support additional game sources
-//!   - Steam's non-Steam games
-//!   - Games available on `$PATH`, such as 0 A.D.
-//! - Support Windows
+//! - Modded Minecraft (Prism Launcher, ATLauncher)
+//!   - Titles are given as `Minecraft - {instance name}`
+
 use cfg_if::cfg_if;
 
 pub mod data;

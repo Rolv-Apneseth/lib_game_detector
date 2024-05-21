@@ -59,26 +59,27 @@ impl GamesDetector for GamesDetectorLinux {
             .collect()
     }
 
-    fn get_all_detected_games(&self) -> Option<GamesSlice> {
+    fn get_all_detected_games(&self) -> GamesSlice {
         self.get_detected_launchers()
             .iter()
             .filter_map(|l| l.get_detected_games().ok())
-            .reduce(|acc, e| acc.iter().cloned().chain(e.iter().cloned()).collect())
+            .fold(vec![], |mut acc, e| {
+                acc.extend(e.iter().cloned());
+                acc
+            })
+            .into()
     }
 
-    fn get_all_detected_games_with_box_art(&self) -> Option<GamesSlice> {
-        self.get_all_detected_games().map(|slice| {
-            slice
-                .iter()
-                .filter(|game| game.path_box_art.is_some())
-                .cloned()
-                .collect()
-        })
+    fn get_all_detected_games_with_box_art(&self) -> GamesSlice {
+        self.get_all_detected_games()
+            .iter()
+            .filter(|game| game.path_box_art.is_some())
+            .cloned()
+            .collect()
     }
 
-    fn get_all_detected_games_per_launcher(&self) -> Option<GamesPerLauncherSlice> {
-        let categorised_games = self
-            .get_detected_launchers()
+    fn get_all_detected_games_per_launcher(&self) -> GamesPerLauncherSlice {
+        self.get_detected_launchers()
             .iter()
             .filter_map(|l| match l.get_detected_games() {
                 Ok(g) => Some((l.get_launcher_type(), g)),
@@ -87,13 +88,7 @@ impl GamesDetector for GamesDetectorLinux {
                     None
                 }
             })
-            .collect::<GamesPerLauncherSlice>();
-
-        if categorised_games.is_empty() {
-            return None;
-        };
-
-        Some(categorised_games)
+            .collect::<GamesPerLauncherSlice>()
     }
 
     fn get_all_detected_games_from_specific_launcher(

@@ -78,11 +78,9 @@ pub type GamesPerLauncherSlice = Arc<[(SupportedLaunchers, GamesSlice)]>;
 
 pub trait GamesDetector {
     fn get_detected_launchers(&self) -> LaunchersSlice;
-    fn get_all_detected_games(&self) -> Option<GamesSlice>;
-    fn get_all_detected_games_with_box_art(&self) -> Option<GamesSlice>;
-    fn get_all_detected_games_per_launcher(
-        &self,
-    ) -> Option<Arc<[(SupportedLaunchers, GamesSlice)]>>;
+    fn get_all_detected_games(&self) -> GamesSlice;
+    fn get_all_detected_games_with_box_art(&self) -> GamesSlice;
+    fn get_all_detected_games_per_launcher(&self) -> Arc<[(SupportedLaunchers, GamesSlice)]>;
     fn get_all_detected_games_from_specific_launcher(
         &self,
         launcher_type: SupportedLaunchers,

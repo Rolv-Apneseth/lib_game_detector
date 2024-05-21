@@ -1,4 +1,4 @@
-use std::{process::exit, rc::Rc, sync::Arc};
+use std::{process::exit, sync::Arc};
 
 use self::launchers::{
     bottles::Bottles,
@@ -8,7 +8,7 @@ use self::launchers::{
     steam::Steam,
 };
 use crate::data::{
-    GamesDetector, GamesPerLauncherSlice, GamesSlice, LaunchersSlice, SupportedLaunchers,
+    Games, GamesDetector, GamesPerLauncher, Launchers, SupportedLaunchers,
 };
 use directories::BaseDirs;
 use tracing::error;
@@ -16,7 +16,7 @@ use tracing::error;
 mod launchers;
 
 pub struct GamesDetectorLinux {
-    launchers: LaunchersSlice,
+    launchers: Launchers,
 }
 
 impl GamesDetectorLinux {
@@ -31,13 +31,13 @@ impl GamesDetectorLinux {
         GamesDetectorLinux { launchers }
     }
 
-    pub fn get_supported_launchers(base_dirs: &BaseDirs) -> LaunchersSlice {
+    pub fn get_supported_launchers(base_dirs: &BaseDirs) -> Launchers {
         let path_home = base_dirs.home_dir();
         let path_config = base_dirs.config_dir();
         let path_cache = base_dirs.cache_dir();
         let path_data = base_dirs.data_dir();
 
-        Rc::new([
+        vec![
             Arc::new(Steam::new(path_home, path_data)),
             Arc::new(HeroicGOG::new(path_home, path_config)),
             Arc::new(HeroicEpic::new(path_home, path_config)),
@@ -46,12 +46,12 @@ impl GamesDetectorLinux {
             Arc::new(Bottles::new(path_home, path_data)),
             Arc::new(MinecraftPrism::new(path_home, path_data)),
             Arc::new(MinecraftAT::new(path_home, path_data)),
-        ])
+        ]
     }
 }
 
 impl GamesDetector for GamesDetectorLinux {
-    fn get_detected_launchers(&self) -> LaunchersSlice {
+    fn get_detected_launchers(&self) -> Launchers {
         self.launchers
             .iter()
             .filter(|l| l.is_detected())
@@ -59,28 +59,26 @@ impl GamesDetector for GamesDetectorLinux {
             .collect()
     }
 
-    fn get_all_detected_games(&self) -> GamesSlice {
+    fn get_all_detected_games(&self) -> Games {
         self.get_detected_launchers()
             .iter()
             .filter_map(|l| l.get_detected_games().ok())
-            .fold(vec![], |mut acc, e| {
-                acc.extend(e.iter().cloned());
+            .fold(vec![], |mut acc, g| {
+                acc.extend(g);
                 acc
             })
-            .into()
     }
 
-    fn get_all_detected_games_with_box_art(&self) -> GamesSlice {
+    fn get_all_detected_games_with_box_art(&self) -> Games {
         self.get_all_detected_games()
-            .iter()
+            .into_iter()
             .filter(|game| game.path_box_art.is_some())
-            .cloned()
             .collect()
     }
 
-    fn get_all_detected_games_per_launcher(&self) -> GamesPerLauncherSlice {
+    fn get_all_detected_games_per_launcher(&self) -> GamesPerLauncher {
         self.get_detected_launchers()
-            .iter()
+            .into_iter()
             .filter_map(|l| match l.get_detected_games() {
                 Ok(g) => Some((l.get_launcher_type(), g)),
                 Err(_) => {
@@ -88,15 +86,15 @@ impl GamesDetector for GamesDetectorLinux {
                     None
                 }
             })
-            .collect::<GamesPerLauncherSlice>()
+            .collect::<GamesPerLauncher>()
     }
 
     fn get_all_detected_games_from_specific_launcher(
         &self,
         launcher_type: SupportedLaunchers,
-    ) -> Option<GamesSlice> {
+    ) -> Option<Games> {
         self.get_detected_launchers()
-            .iter()
+            .into_iter()
             .find(|l| l.get_launcher_type() == launcher_type)
             .and_then(|l| {
                 l.get_detected_games()

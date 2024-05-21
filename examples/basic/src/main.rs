@@ -1,7 +1,14 @@
 use lib_game_detector::{data::SupportedLaunchers, get_detector};
 use tracing::debug;
 
+#[cfg(feature = "dhat-heap")]
+#[global_allocator]
+static ALLOC: dhat::Alloc = dhat::Alloc;
+
 fn main() {
+    #[cfg(feature = "dhat-heap")]
+    let _profiler = dhat::Profiler::new_heap();
+
     // Init tracing
     tracing_subscriber::fmt::init();
 

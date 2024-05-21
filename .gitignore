@@ -6,3 +6,4 @@ Cargo.lock
 *.pdb
 /target
 mutants*/
+**/dhat-heap.json

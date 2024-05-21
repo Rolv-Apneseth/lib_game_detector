@@ -3,7 +3,6 @@ use std::{
     io,
     path::PathBuf,
     process::Command,
-    rc::Rc,
     sync::{Arc, Mutex},
 };
 
@@ -18,9 +17,9 @@ pub struct Game {
     pub launch_command: Arc<Mutex<Command>>,
 }
 
-pub type GamesSlice = Arc<[Game]>;
+pub type Games = Vec<Arc<Game>>;
 
-/// Custom error type to be used in the custom GamesSlice Result type
+/// Custom error type to be used in the custom `Games` Result type
 #[derive(Error, Debug)]
 pub enum GamesParsingError {
     #[error("IO error")]
@@ -30,8 +29,8 @@ pub enum GamesParsingError {
     Other(#[from] anyhow::Error),
 }
 
-/// Custom Result type for GamesSlice
-pub type GamesResult = Result<GamesSlice, GamesParsingError>;
+/// Custom Result type for Games
+pub type GamesResult = Result<Games, GamesParsingError>;
 
 /// Data structure representing a supported games source
 #[derive(PartialEq, Eq)]
@@ -73,16 +72,16 @@ pub trait Launcher: Send + Debug {
     fn is_detected(&self) -> bool;
     fn get_launcher_type(&self) -> SupportedLaunchers;
 }
-pub type LaunchersSlice = Rc<[Arc<dyn Launcher>]>;
-pub type GamesPerLauncherSlice = Arc<[(SupportedLaunchers, GamesSlice)]>;
+pub type Launchers = Vec<Arc<dyn Launcher>>;
+pub type GamesPerLauncher = Vec<(SupportedLaunchers, Games)>;
 
 pub trait GamesDetector {
-    fn get_detected_launchers(&self) -> LaunchersSlice;
-    fn get_all_detected_games(&self) -> GamesSlice;
-    fn get_all_detected_games_with_box_art(&self) -> GamesSlice;
-    fn get_all_detected_games_per_launcher(&self) -> Arc<[(SupportedLaunchers, GamesSlice)]>;
+    fn get_detected_launchers(&self) -> Launchers;
+    fn get_all_detected_games(&self) -> Games;
+    fn get_all_detected_games_with_box_art(&self) -> Games;
+    fn get_all_detected_games_per_launcher(&self) -> GamesPerLauncher;
     fn get_all_detected_games_from_specific_launcher(
         &self,
         launcher_type: SupportedLaunchers,
-    ) -> Option<GamesSlice>;
+    ) -> Option<Games>;
 }

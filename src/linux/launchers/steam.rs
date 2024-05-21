@@ -14,7 +14,7 @@ use std::{
 use tracing::{debug, error, trace, warn};
 
 use crate::{
-    data::{Game, GamesParsingError, GamesResult, GamesSlice, Launcher, SupportedLaunchers},
+    data::{Game, GamesParsingError, GamesResult, Games, Launcher, SupportedLaunchers},
     parsers::parse_value_json,
     utils::{
         clean_game_title, get_launch_command, get_launch_command_flatpak, some_if_dir, some_if_file,
@@ -148,7 +148,7 @@ impl<'steamlibrary> SteamLibrary<'steamlibrary> {
 
     /// Get all steam games associated with this library
     #[tracing::instrument]
-    pub fn get_all_games(&self) -> Result<GamesSlice, io::Error> {
+    pub fn get_all_games(&self) -> Result<Games, io::Error> {
         let manifest_paths = self.get_manifest_paths()?;
 
         if manifest_paths.is_empty() {
@@ -161,6 +161,7 @@ impl<'steamlibrary> SteamLibrary<'steamlibrary> {
         Ok(manifest_paths
             .iter()
             .filter_map(|path| self.get_game(path))
+            .map(|g| g.into())
             .collect())
     }
 }

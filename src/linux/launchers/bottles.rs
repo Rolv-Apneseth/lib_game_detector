@@ -336,6 +336,7 @@ impl Launcher for Bottles {
                         path_box_art,
                         path_game_dir,
                     }
+                    .into()
                 },
             )
             .collect())

@@ -19,6 +19,7 @@ thiserror = "1.0.51"
 [dev-dependencies]
 criterion = { version = "0.5.1", features = ["html_reports"] }
 test-case = "3.3.1"
+tracing-subscriber = "0.3.18"
 divan = "0.1.14"
 
 [[bench]]

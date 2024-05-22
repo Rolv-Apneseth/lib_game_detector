@@ -6,9 +6,9 @@ fn test_detector() -> Result<(), anyhow::Error> {
 
     assert!(!detector.get_detected_launchers().is_empty());
 
-    assert!(detector.get_all_detected_games().len() > 0);
-    assert!(detector.get_all_detected_games_with_box_art().len() > 0);
-    assert!(detector.get_all_detected_games_per_launcher().len() > 0);
+    assert!(!detector.get_all_detected_games().is_empty());
+    assert!(!detector.get_all_detected_games_with_box_art().is_empty());
+    assert!(!detector.get_all_detected_games_per_launcher().is_empty());
 
     assert!(detector
         .get_all_detected_games_from_specific_launcher(

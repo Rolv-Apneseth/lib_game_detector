@@ -19,8 +19,14 @@ thiserror = "1.0.51"
 [dev-dependencies]
 criterion = { version = "0.5.1", features = ["html_reports"] }
 test-case = "3.3.1"
+divan = "0.1.14"
 
 [[bench]]
 name = "main"
-path = "benches/bench.rs"
+path = "benches/criterion.rs"
+harness = false
+
+[[bench]]
+name = "divan"
+path = "benches/divan.rs"
 harness = false

@@ -7,9 +7,7 @@ use self::launchers::{
     minecraft::{at::MinecraftAT, prism::MinecraftPrism},
     steam::Steam,
 };
-use crate::data::{
-    Games, GamesDetector, GamesPerLauncher, Launchers, SupportedLaunchers,
-};
+use crate::data::{Games, GamesDetector, GamesPerLauncher, Launchers, SupportedLaunchers};
 use directories::BaseDirs;
 use tracing::error;
 

@@ -304,7 +304,7 @@ impl Launcher for Bottles {
                      game_dir,
                  }| {
                     let launch_command = {
-                        let base_args = ["run", "-p", &title, "-b", &bottle_name];
+                        let base_args = ["run", "-p", title, "-b", bottle_name];
                         if self.is_using_flatpak {
                             get_launch_command_flatpak(
                                 "com.usebottles.bottles",

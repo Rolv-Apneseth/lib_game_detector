@@ -160,14 +160,15 @@ mod tests {
         dbg!(&games);
         assert_eq!(games.len(), 2);
 
-        assert_eq!(games[0].title, get_minecraft_title("All The Forge 10"));
-        assert_eq!(games[1].title, get_minecraft_title("The Pixelmon Modpack"));
+        assert!(games
+            .iter()
+            .any(|g| g.title == get_minecraft_title("All The Forge 10")));
+        assert!(games
+            .iter()
+            .any(|g| g.title == get_minecraft_title("The Pixelmon Modpack")));
 
-        assert!(games[0].path_game_dir.is_some());
-        assert!(games[1].path_game_dir.is_some());
-
-        assert!(games[0].path_box_art.is_none());
-        assert!(games[1].path_box_art.is_none());
+        assert!(games.iter().all(|g| g.path_game_dir.is_some()));
+        assert!(games.iter().all(|g| g.path_box_art.is_none()));
 
         Ok(())
     }

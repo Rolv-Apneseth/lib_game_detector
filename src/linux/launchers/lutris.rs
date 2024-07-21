@@ -1,11 +1,12 @@
-use itertools::Itertools;
-use nom::{bytes::complete::take_until, IResult};
 use std::{
     fs::{read_dir, read_to_string, File},
     io::{self, BufRead, BufReader},
     path::{Path, PathBuf},
     sync::Arc,
 };
+
+use itertools::Itertools;
+use nom::{bytes::complete::take_until, IResult};
 use tracing::{debug, error, trace, warn};
 
 use crate::{
@@ -360,9 +361,10 @@ impl Launcher for Lutris {
 
 #[cfg(test)]
 mod tests {
+    use test_case::test_case;
+
     use super::*;
     use crate::linux::test_utils::get_mock_file_system_path;
-    use test_case::test_case;
 
     #[test_case(false, ".config"; "standard")]
     #[test_case(true, "invalid/data/path"; "flatpak")]

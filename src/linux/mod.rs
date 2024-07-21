@@ -1,5 +1,8 @@
 use std::{process::exit, sync::Arc};
 
+use directories::BaseDirs;
+use tracing::error;
+
 use self::launchers::{
     bottles::Bottles,
     heroic::{heroic_amazon::HeroicAmazon, heroic_epic::HeroicEpic, heroic_gog::HeroicGOG},
@@ -8,8 +11,6 @@ use self::launchers::{
     steam::{Steam, SteamShortcuts},
 };
 use crate::data::{Games, GamesDetector, GamesPerLauncher, Launchers, SupportedLaunchers};
-use directories::BaseDirs;
-use tracing::error;
 
 mod launchers;
 

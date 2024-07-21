@@ -113,8 +113,9 @@ pub fn parse_value_cfg<'a>(file_content: &'a str, key: &'a str) -> IResult<&'a s
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use test_case::test_case;
+
+    use super::*;
 
     #[test_case("\t\"key\": \"value\"", "key", "value", true)]
     #[test_case("\"key\": \"value\"", "key", "value", false)]

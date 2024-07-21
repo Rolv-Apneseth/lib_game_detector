@@ -60,8 +60,9 @@ pub fn get_existing_image_path(base_path: &Path, file_name: impl Display) -> Opt
 
 #[cfg(test)]
 pub mod test {
-    use super::*;
     use test_case::test_case;
+
+    use super::*;
 
     #[test_case("Soon™", "Soon")]
     #[test_case("Game®", "Game")]

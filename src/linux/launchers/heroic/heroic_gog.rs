@@ -1,9 +1,10 @@
-use nom::IResult;
 use std::{
     fs::read_to_string,
     io::{self},
     path::{Path, PathBuf},
 };
+
+use nom::IResult;
 use tracing::{debug, error, trace, warn};
 
 use crate::{
@@ -163,9 +164,10 @@ impl Launcher for HeroicGOG {
 
 #[cfg(test)]
 mod tests {
+    use test_case::test_case;
+
     use super::*;
     use crate::linux::test_utils::get_mock_file_system_path;
-    use test_case::test_case;
 
     #[test_case(false, ".config"; "standard")]
     #[test_case(true, "invalid/data/path"; "flatpak")]

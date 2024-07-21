@@ -2,8 +2,10 @@ use std::{
     io::{self},
     path::{Path, PathBuf},
 };
+
 use tracing::{debug, error, trace, warn};
 
+use super::ParsableLibraryData;
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
     linux::launchers::heroic::{
@@ -11,8 +13,6 @@ use crate::{
     },
     utils::{some_if_dir, some_if_file},
 };
-
-use super::ParsableLibraryData;
 
 #[derive(Debug)]
 pub struct HeroicEpic {
@@ -109,9 +109,10 @@ impl Launcher for HeroicEpic {
 
 #[cfg(test)]
 mod tests {
+    use test_case::test_case;
+
     use super::*;
     use crate::linux::test_utils::get_mock_file_system_path;
-    use test_case::test_case;
 
     #[test_case(false, ".config"; "standard")]
     #[test_case(true, "invalid/data/path"; "flatpak")]

@@ -1,9 +1,3 @@
-use nom::{
-    bytes::complete::{is_not, tag, take_till},
-    character::complete::multispace1,
-    sequence::preceded,
-    IResult,
-};
 use std::{
     fs::{read_dir, read_to_string},
     io,
@@ -11,6 +5,12 @@ use std::{
     sync::Arc,
 };
 
+use nom::{
+    bytes::complete::{is_not, tag, take_till},
+    character::complete::multispace1,
+    sequence::preceded,
+    IResult,
+};
 use tracing::{debug, error, trace, warn};
 
 use crate::{
@@ -345,9 +345,10 @@ impl Launcher for Bottles {
 
 #[cfg(test)]
 mod tests {
+    use test_case::test_case;
+
     use super::*;
     use crate::linux::test_utils::get_mock_file_system_path;
-    use test_case::test_case;
 
     #[test_case(false, ".local/share"; "standard")]
     #[test_case(true, "invalid/data/path"; "flatpak")]

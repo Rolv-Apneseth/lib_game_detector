@@ -36,6 +36,7 @@ pub type GamesResult = Result<Games, GamesParsingError>;
 #[derive(PartialEq, Eq)]
 pub enum SupportedLaunchers {
     Steam,
+    SteamShortcuts,
     HeroicGamesAmazon,
     HeroicGamesEpicGames,
     HeroicGOG,
@@ -51,6 +52,7 @@ impl Debug for SupportedLaunchers {
             "{}",
             match self {
                 SupportedLaunchers::Steam => "Steam",
+                SupportedLaunchers::SteamShortcuts => "Steam Shortcuts",
                 SupportedLaunchers::HeroicGamesAmazon =>
                     "Heroic Games Launcher - Amazon Prime Gaming",
                 SupportedLaunchers::HeroicGamesEpicGames =>

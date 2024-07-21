@@ -13,12 +13,11 @@ use std::{
 };
 use tracing::{debug, error, trace, warn};
 
+use super::{get_steam_dir, get_steam_flatpak_dir, get_steam_launch_command};
 use crate::{
     data::{Game, Games, GamesParsingError, GamesResult, Launcher, SupportedLaunchers},
     parsers::parse_value_json,
-    utils::{
-        clean_game_title, get_launch_command, get_launch_command_flatpak, some_if_dir, some_if_file,
-    },
+    utils::{clean_game_title, some_if_dir, some_if_file},
 };
 
 struct ParsableManifestData {
@@ -109,15 +108,7 @@ impl<'steamlibrary> SteamLibrary<'steamlibrary> {
             },
         ) = parse_game_manifest(&file_content).ok()?;
 
-        let launch_command = {
-            let game_run_arg = format!("steam://rungameid/{app_id}");
-            let args = [game_run_arg.as_str()];
-            if self.is_using_flatpak {
-                get_launch_command_flatpak("com.valvesoftware.Steam", [], args, [])
-            } else {
-                get_launch_command("steam", args, [])
-            }
-        };
+        let launch_command = get_steam_launch_command(&app_id, self.is_using_flatpak);
 
         let path_game_dir = some_if_dir(
             self.path_library
@@ -175,12 +166,12 @@ pub struct Steam {
 
 impl Steam {
     pub fn new(path_home: &Path, path_data: &Path) -> Self {
-        let mut path_steam_dir = path_data.join("Steam");
+        let mut path_steam_dir = get_steam_dir(path_data);
         let mut is_using_flatpak = false;
 
         if !path_steam_dir.is_dir() {
             is_using_flatpak = true;
-            path_steam_dir = path_home.join(".var/app/com.valvesoftware.Steam/data/Steam")
+            path_steam_dir = get_steam_flatpak_dir(path_home);
         };
 
         debug!("Steam dir path exists: {}", path_steam_dir.is_dir());

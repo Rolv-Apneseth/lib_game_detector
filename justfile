@@ -4,6 +4,7 @@ alias bd := bench-divan
 alias bl := bench-launchers
 alias d := develop
 alias e := example
+alias f := format
 
 # COMMANDS -----------------------------------------------------------------------------------------
 
@@ -11,12 +12,16 @@ alias e := example
 default:
     @just --list
 
+# Format
+format:
+    cargo +nightly fmt
+
 # Build
-build:
+build: format
     cargo build --release
 
 # Test
-test:
+test: format
     cargo test --all
 
 # Benchmark

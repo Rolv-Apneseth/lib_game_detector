@@ -7,8 +7,9 @@ pub fn get_minecraft_title(title: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use test_case::test_case;
+
+    use super::*;
 
     #[test_case(true, "abc", "Minecraft: abc")]
     #[test_case(true, "012 xyz", "Minecraft: 012 xyz")]

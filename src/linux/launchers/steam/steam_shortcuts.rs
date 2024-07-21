@@ -1,12 +1,16 @@
-use std::fs::{read, read_dir, read_to_string};
-use std::mem;
-use std::path::{Path, PathBuf};
+use std::{
+    fs::{read, read_dir, read_to_string},
+    mem,
+    path::{Path, PathBuf},
+};
 
 use anyhow::anyhow;
-use nom::bytes::complete::take_till;
-use nom::character::complete::char;
-use nom::sequence::delimited;
-use nom::{bytes::complete::take_until, IResult};
+use nom::{
+    bytes::complete::{take_till, take_until},
+    character::complete::char,
+    sequence::delimited,
+    IResult,
+};
 use steam_shortcuts_util::parse_shortcuts;
 use tracing::{debug, error, trace, warn};
 

@@ -135,9 +135,10 @@ impl Launcher for MinecraftPrism {
 
 #[cfg(test)]
 mod tests {
+    use test_case::test_case;
+
     use super::*;
     use crate::linux::test_utils::get_mock_file_system_path;
-    use test_case::test_case;
 
     #[test_case(false, ".local/share"; "standard")]
     #[test_case(true, "invalid/data/path"; "flatpak")]

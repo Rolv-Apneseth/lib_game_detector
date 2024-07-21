@@ -1,15 +1,16 @@
+use std::{
+    fs::{read_dir, read_to_string, File},
+    io::{self, BufRead, BufReader},
+    path::{Path, PathBuf},
+    sync::Arc,
+};
+
 use anyhow::anyhow;
 use nom::{
     bytes::complete::{tag, take_till},
     character::is_alphanumeric,
     sequence::delimited,
     IResult,
-};
-use std::{
-    fs::{read_dir, read_to_string, File},
-    io::{self, BufRead, BufReader},
-    path::{Path, PathBuf},
-    sync::Arc,
 };
 use tracing::{debug, error, trace, warn};
 
@@ -251,9 +252,10 @@ impl Launcher for Steam {
 
 #[cfg(test)]
 mod tests {
+    use test_case::test_case;
+
     use super::*;
     use crate::linux::test_utils::get_mock_file_system_path;
-    use test_case::test_case;
 
     #[test_case(false, ".local/share"; "standard")]
     #[test_case(true, "invalid/data/path"; "flatpak")]

@@ -19,7 +19,7 @@ Install with `cargo add lib_game_detector` or add the following to your `Cargo.t
 
 ```toml
 [dependencies]
-lib_game_detector = "0.0.7"
+lib_game_detector = "0.0.8"
 ```
 
 ## Usage

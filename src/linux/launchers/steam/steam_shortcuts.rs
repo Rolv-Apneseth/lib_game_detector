@@ -301,3 +301,44 @@ impl Launcher for SteamShortcuts {
             .collect())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use test_case::test_case;
+
+    use super::*;
+    use crate::linux::test_utils::get_mock_file_system_path;
+
+    #[test_case(false, ".local/share"; "standard")]
+    #[test_case(true, "invalid/data/path"; "flatpak")]
+    fn test_steam_shortcuts_launcher(
+        is_testing_flatpak: bool,
+        path_data: &str,
+    ) -> Result<(), anyhow::Error> {
+        let path_files_system_mock = get_mock_file_system_path();
+        let launcher = SteamShortcuts::new(
+            &path_files_system_mock,
+            &path_files_system_mock.join(path_data),
+        );
+
+        assert!(launcher.is_detected());
+        assert!(launcher.is_using_flatpak == is_testing_flatpak);
+
+        let games = launcher.get_detected_games()?;
+        assert_eq!(games.len(), 3);
+
+        assert_eq!(games[0].title, "ATLauncher");
+        assert_eq!(games[1].title, "Brave");
+        assert_eq!(games[2].title, "Lutris");
+
+        assert!(games[0].path_game_dir.is_none());
+        assert!(games[1].path_game_dir.is_none());
+        assert!(games[2].path_game_dir.is_none());
+
+        assert!(games[0].path_box_art.is_some());
+        assert!(games[1].path_box_art.is_some());
+        assert!(games[2].path_box_art.is_none());
+
+        Ok(())
+    }
+}

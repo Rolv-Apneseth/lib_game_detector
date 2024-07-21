@@ -5,7 +5,7 @@ use self::launchers::{
     heroic::{heroic_amazon::HeroicAmazon, heroic_epic::HeroicEpic, heroic_gog::HeroicGOG},
     lutris::Lutris,
     minecraft::{at::MinecraftAT, prism::MinecraftPrism},
-    steam::Steam,
+    steam::{Steam, SteamShortcuts},
 };
 use crate::data::{Games, GamesDetector, GamesPerLauncher, Launchers, SupportedLaunchers};
 use directories::BaseDirs;
@@ -37,6 +37,7 @@ impl GamesDetectorLinux {
 
         vec![
             Arc::new(Steam::new(path_home, path_data)),
+            Arc::new(SteamShortcuts::new(path_home, path_data)),
             Arc::new(HeroicGOG::new(path_home, path_config)),
             Arc::new(HeroicEpic::new(path_home, path_config)),
             Arc::new(HeroicAmazon::new(path_home, path_config)),

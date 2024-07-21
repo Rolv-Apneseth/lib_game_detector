@@ -1,12 +1,13 @@
 use std::{
+    fmt::Display,
     path::{Path, PathBuf},
     process::Command,
     sync::{Arc, Mutex},
 };
 
 /// Cleans up parsed game title
-pub fn clean_game_title(title: &str) -> String {
-    title.replace(['™', '®'], "")
+pub fn clean_game_title(title: impl AsRef<str>) -> String {
+    title.as_ref().replace(['™', '®'], "")
 }
 
 /// Returns a std::process::Command from a given command str and it's arguments
@@ -51,7 +52,7 @@ pub fn some_if_dir(path: PathBuf) -> Option<PathBuf> {
 ///
 /// e.g. dir/path/file_name.{png,jpg,jpeg} will return the first path which actually exists (or
 /// `None` if none of them exist)
-pub fn get_existing_image_path(base_path: &Path, file_name: &str) -> Option<PathBuf> {
+pub fn get_existing_image_path(base_path: &Path, file_name: impl Display) -> Option<PathBuf> {
     ["png", "jpg", "jpeg"]
         .iter()
         .find_map(|ext| some_if_file(base_path.join(format!("{file_name}.{ext}"))))

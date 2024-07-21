@@ -46,7 +46,7 @@ fn parse_game_from_gog_installed(file_content: &str) -> IResult<&str, ParsableGO
         file_content,
         ParsableGOGInstalledData {
             app_id,
-            title: clean_game_title(&title),
+            title: clean_game_title(title),
             install_path,
         },
     ))

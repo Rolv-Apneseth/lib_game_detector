@@ -54,7 +54,7 @@ fn parse_game_manifest(file_content: &str) -> IResult<&str, ParsableManifestData
         file_content,
         ParsableManifestData {
             app_id,
-            title: clean_game_title(&title),
+            title: clean_game_title(title),
             install_dir_path,
         },
     ))

@@ -53,7 +53,7 @@ fn parse_game_from_library(file_content: &str) -> IResult<&str, ParsableLibraryD
         file_content,
         ParsableLibraryData {
             app_id,
-            title: clean_game_title(&title),
+            title: clean_game_title(title),
             install_path,
         },
     ))

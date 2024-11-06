@@ -154,6 +154,10 @@ pub struct Lutris {
     path_box_art_dir: PathBuf,
     path_game_paths_json: PathBuf,
     is_using_flatpak: bool,
+    // Fallbacks for games and cover art dirs as Lutris on some systems without `$XDG`
+    // env variables defined seems to put things in different places.
+    fallback_path_games_dir: PathBuf,
+    fallback_path_box_art_dir: PathBuf,
 }
 
 impl Lutris {
@@ -163,8 +167,12 @@ impl Lutris {
         let mut path_box_art_dir = path_cache_lutris.join("coverart");
         let path_data_lutris = path_data.join("lutris");
 
+        // Check for flatpak only if multiple dirs don't exist, and use fallbacks if only the
+        // config dir is missing.
         let mut is_using_flatpak = false;
-        if !path_config.is_dir() || !path_cache_lutris.is_dir() {
+        if !path_config_lutris.is_dir()
+            && (!path_cache_lutris.is_dir() || !path_data_lutris.is_dir())
+        {
             trace!("Attempting to fall back to flatpak directory");
             is_using_flatpak = true;
             let path_flatpak = path_home.join(".var/app/net.lutris.Lutris");
@@ -174,45 +182,55 @@ impl Lutris {
         }
 
         let path_game_paths_json = path_cache_lutris.join("game-paths.json");
-        let mut path_games_dir = path_config_lutris.join("games");
+        let path_games_dir = path_config_lutris.join("games");
 
-        // Attempt fallbacks for games and cover art dirs as Lutris on some systems without `$XDG`
-        // env variables defined seems to put things in different places.
-        if !path_games_dir.is_dir() {
-            path_games_dir = path_data_lutris.join("games");
-            if path_games_dir.is_dir() {
-                debug!(
-                    "Couldn't find games dir in config, but fallback to data dir was successful."
-                );
-            }
-        }
-        if !path_box_art_dir.is_dir() {
-            path_box_art_dir = path_data_lutris.join("coverart");
-            if path_box_art_dir.is_dir() {
-                debug!("Couldn't find coverart in cache, but fallback to data dir was successful.");
-            }
-        }
+        let fallback_path_games_dir = path_data_lutris.join("games");
+        let fallback_path_box_art_dir = path_data_lutris.join("coverart");
 
         debug!("Lutris - using flatpak: {is_using_flatpak}");
+
         debug!(
-            "Lutris - games directory exists: {}",
+            "Lutris - games directory exists at {path_games_dir:?}: {}",
             path_games_dir.is_dir()
         );
-        debug!("Lutris - games directory exists: {path_games_dir:?}");
         debug!(
-            "Lutris box art directory exists: {}",
+            "Lutris - fallback games directory exists at {fallback_path_games_dir:?}: {}",
+            fallback_path_games_dir.is_dir()
+        );
+        debug!(
+            "Lutris box art directory exists at {path_box_art_dir:?}: {}",
             path_box_art_dir.is_dir()
         );
         debug!(
-            "Lutris `game-paths.json` file exists: {}",
+            "Lutris `game-paths.json` file exists at {path_game_paths_json:?}: {}",
             path_game_paths_json.is_file()
         );
 
         Lutris {
             path_games_dir,
             path_box_art_dir,
+            fallback_path_games_dir,
+            fallback_path_box_art_dir,
             path_game_paths_json,
             is_using_flatpak,
+        }
+    }
+
+    /// Get the path to the games directory, using the fallback if the primary path doesn't exist
+    fn path_games_dir_with_fallback(&self) -> &Path {
+        if self.path_games_dir.is_dir() {
+            &self.path_games_dir
+        } else {
+            &self.fallback_path_games_dir
+        }
+    }
+
+    /// Get the path to the cover art directory, using the fallback if the primary path doesn't exist
+    fn path_box_art_dir_with_fallback(&self) -> &Path {
+        if self.path_box_art_dir.is_dir() {
+            &self.path_box_art_dir
+        } else {
+            &self.fallback_path_box_art_dir
         }
     }
 
@@ -259,7 +277,7 @@ impl Lutris {
     /// Parse data from the Lutris games directory, which contains 1 `.yml` file for each game
     #[tracing::instrument(skip(self))]
     fn parse_games_dir(&self) -> Result<Arc<[ParsableGameYmlData]>, io::Error> {
-        Ok(read_dir(&self.path_games_dir)
+        Ok(read_dir(self.path_games_dir_with_fallback())
             .map_err(|e| {
                 error!("Error with reading games directory for Lutris: {e:?}");
                 e
@@ -310,8 +328,8 @@ impl Lutris {
 impl Launcher for Lutris {
     fn is_detected(&self) -> bool {
         self.path_game_paths_json.exists()
-            && self.path_games_dir.is_dir()
-            && self.path_box_art_dir.is_dir()
+            && (self.path_games_dir.is_dir() || self.fallback_path_games_dir.is_dir())
+            && (self.path_box_art_dir.is_dir() || self.fallback_path_box_art_dir.is_dir())
     }
 
     fn get_launcher_type(&self) -> SupportedLaunchers {
@@ -353,10 +371,13 @@ impl Launcher for Lutris {
                         let mut path = None;
                         // First, check if a file name using the game_slug exists
                         if let Some(s) = game_slug {
-                            path = get_existing_image_path(&self.path_box_art_dir, s);
+                            path =
+                                get_existing_image_path(self.path_box_art_dir_with_fallback(), s);
                         }
                         // Otherwise, fallback to using the slug
-                        path.or_else(|| get_existing_image_path(&self.path_box_art_dir, slug))
+                        path.or_else(|| {
+                            get_existing_image_path(self.path_box_art_dir_with_fallback(), slug)
+                        })
                     };
 
                     let path_game_dir = some_if_dir(PathBuf::from(game_dir));
@@ -384,17 +405,19 @@ mod tests {
     use super::*;
     use crate::linux::test_utils::get_mock_file_system_path;
 
-    #[test_case(false, ".config"; "standard")]
-    #[test_case(true, "invalid/data/path"; "flatpak")]
+    #[test_case(false, ".config", ".cache"; "standard")]
+    #[test_case(false, "invalid/path", ".cache"; "fallback")]
+    #[test_case(true, "invalid/path", "invalid/path"; "flatpak")]
     fn test_lutris_launcher(
         is_testing_flatpak: bool,
         path_config: &str,
-    ) -> Result<(), anyhow::Error> {
+        path_cache: &str,
+    ) -> anyhow::Result<()> {
         let path_file_system_mock = get_mock_file_system_path();
         let launcher = Lutris::new(
             &path_file_system_mock,
             &path_file_system_mock.join(path_config),
-            &path_file_system_mock.join(".cache"),
+            &path_file_system_mock.join(path_cache),
             &path_file_system_mock.join(".local/share"),
         );
 

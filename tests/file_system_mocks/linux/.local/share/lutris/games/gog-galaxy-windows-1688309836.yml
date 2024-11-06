@@ -1,0 +1,41 @@
+game:
+  args: /runWithoutUpdating /deelevated
+  exe: drive_c/Program Files (x86)/GOG Galaxy/GalaxyClient.exe
+  prefix: /home
+game_slug: gog-galaxy
+name: GOG Galaxy
+requires: null
+script:
+  files:
+  - galaxy: https://content-system.gog.com/open_link/download?path=/open/galaxy/client/2.0.65.11/setup_galaxy_2.0.65.11.exe
+  game:
+    args: /runWithoutUpdating /deelevated
+    exe: drive_c/Program Files (x86)/GOG Galaxy/GalaxyClient.exe
+    prefix: $GAMEDIR
+  installer:
+  - task:
+      arch: win64
+      prefix: /home
+      wine_path: /home/user/.local/share/lutris/runners/wine/lutris-GE-Proton8-5-x86_64/bin/wine
+  - task:
+      arch: win64
+      env: {}
+      executable: /home/user/.cache/lutris/installer/gog-galaxy/gog/setup_galaxy_2.0.65.11.exe
+      prefix: /home
+      wine_path: /home/user/.local/share/lutris/runners/wine/lutris-GE-Proton8-5-x86_64/bin/wine
+  - task:
+      app: mfc140
+      arch: win64
+      prefix: /home
+      wine_path: /home/user/.local/share/lutris/runners/wine/lutris-GE-Proton8-5-x86_64/bin/wine
+  - task:
+      app: corefonts
+      arch: win64
+      prefix: /home
+      wine_path: /home/user/.local/share/lutris/runners/wine/lutris-GE-Proton8-5-x86_64/bin/wine
+slug: gog-galaxy-windows
+system: {}
+variables: {}
+version: Windows
+wine: {}
+year: 2014

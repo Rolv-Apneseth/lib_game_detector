@@ -48,15 +48,13 @@ impl HeroicAmazon {
             self.path_nile_library
         );
 
-        parse_all_games_from_library(&self.path_nile_library).map(|data| {
+        parse_all_games_from_library(&self.path_nile_library).inspect(|data| {
             if data.is_empty() {
                 warn!(
                     "No games were parsed from the Nile library file at {:?}",
                     self.path_nile_library
                 )
             };
-
-            data
         })
     }
 }

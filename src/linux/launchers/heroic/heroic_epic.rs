@@ -48,15 +48,13 @@ impl HeroicEpic {
             self.path_legendary_library
         );
 
-        parse_all_games_from_library(&self.path_legendary_library).map(|data| {
+        parse_all_games_from_library(&self.path_legendary_library).inspect(|data| {
             if data.is_empty() {
                 warn!(
                     "No games were parsed from the Legendary library file at {:?}",
                     self.path_legendary_library
                 )
             };
-
-            data
         })
     }
 }

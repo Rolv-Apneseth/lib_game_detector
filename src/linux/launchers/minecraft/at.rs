@@ -138,14 +138,15 @@ mod tests {
         dbg!(&games);
         assert_eq!(games.len(), 2);
 
-        assert_eq!(games[0].title, get_minecraft_title("Sky Factory"));
-        assert_eq!(games[1].title, get_minecraft_title("Fabulously Optimized"));
+        assert!(games
+            .iter()
+            .any(|g| g.title == get_minecraft_title("Sky Factory")));
+        assert!(games
+            .iter()
+            .any(|g| g.title == get_minecraft_title("Fabulously Optimized")));
 
-        assert!(games[0].path_game_dir.is_some());
-        assert!(games[1].path_game_dir.is_some());
-
-        assert!(games[0].path_box_art.is_none());
-        assert!(games[1].path_box_art.is_none());
+        assert!(games.iter().all(|g| g.path_game_dir.is_some()));
+        assert!(games.iter().all(|g| g.path_box_art.is_none()));
 
         Ok(())
     }

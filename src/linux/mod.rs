@@ -42,7 +42,7 @@ impl GamesDetectorLinux {
             Arc::new(HeroicGOG::new(path_home, path_config)),
             Arc::new(HeroicEpic::new(path_home, path_config)),
             Arc::new(HeroicAmazon::new(path_home, path_config)),
-            Arc::new(Lutris::new(path_home, path_config, path_cache)),
+            Arc::new(Lutris::new(path_home, path_config, path_cache, path_data)),
             Arc::new(Bottles::new(path_home, path_data)),
             Arc::new(MinecraftPrism::new(path_home, path_data)),
             Arc::new(MinecraftAT::new(path_home, path_data)),

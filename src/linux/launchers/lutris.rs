@@ -157,12 +157,13 @@ pub struct Lutris {
 }
 
 impl Lutris {
-    pub fn new(path_home: &Path, path_config: &Path, path_cache: &Path) -> Self {
+    pub fn new(path_home: &Path, path_config: &Path, path_cache: &Path, path_data: &Path) -> Self {
         let mut path_config_lutris = path_config.join("lutris");
         let mut path_cache_lutris = path_cache.join("lutris");
         let mut path_box_art_dir = path_cache_lutris.join("coverart");
-        let mut is_using_flatpak = false;
+        let path_data_lutris = path_data.join("lutris");
 
+        let mut is_using_flatpak = false;
         if !path_config.is_dir() || !path_cache_lutris.is_dir() {
             trace!("Attempting to fall back to flatpak directory");
             is_using_flatpak = true;
@@ -172,8 +173,25 @@ impl Lutris {
             path_box_art_dir = path_flatpak.join("data/lutris/coverart");
         }
 
-        let path_games_dir = path_config_lutris.join("games");
         let path_game_paths_json = path_cache_lutris.join("game-paths.json");
+        let mut path_games_dir = path_config_lutris.join("games");
+
+        // Attempt fallbacks for games and cover art dirs as Lutris on some systems without `$XDG`
+        // env variables defined seems to put things in different places.
+        if !path_games_dir.is_dir() {
+            path_games_dir = path_data_lutris.join("games");
+            if path_games_dir.is_dir() {
+                debug!(
+                    "Couldn't find games dir in config, but fallback to data dir was successful."
+                );
+            }
+        }
+        if !path_box_art_dir.is_dir() {
+            path_box_art_dir = path_data_lutris.join("coverart");
+            if path_box_art_dir.is_dir() {
+                debug!("Couldn't find coverart in cache, but fallback to data dir was successful.");
+            }
+        }
 
         debug!("Lutris - using flatpak: {is_using_flatpak}");
         debug!(
@@ -377,6 +395,7 @@ mod tests {
             &path_file_system_mock,
             &path_file_system_mock.join(path_config),
             &path_file_system_mock.join(".cache"),
+            &path_file_system_mock.join(".local/share"),
         );
 
         assert!(launcher.is_detected());

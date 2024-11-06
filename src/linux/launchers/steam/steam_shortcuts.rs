@@ -211,43 +211,44 @@ impl SteamShortcuts {
     }
 
     #[tracing::instrument]
-    fn parse_combined_data(&self) -> Result<Vec<ParsableDataCombined>, GamesParsingError> {
+    fn parse_combined_data(&self) -> Result<Option<Vec<ParsableDataCombined>>, GamesParsingError> {
         let shortcut_files = find_userdata_files(&self.path_steam_userdata_dir)?;
 
         // TODO: find way to know what user is logged in so we can choose the correct file
-        let UserDataFiles {
+        let Some(UserDataFiles {
             path_shortcuts,
             path_screenshots,
             path_box_art_dir,
-        } = shortcut_files.into_iter().next().ok_or_else(|| {
-            GamesParsingError::Other(anyhow!(
-                "No shortcuts file found in {:?}",
-                self.path_steam_userdata_dir
-            ))
-        })?;
+        }) = shortcut_files.into_iter().next()
+        else {
+            // One of the paths could not be found, no shortcuts available for the user
+            return Ok(None);
+        };
 
         let shortcuts_data = get_parsable_shortcuts_data(&path_shortcuts)?;
         let mut screenshots_data = get_parsable_screenshots_data(&path_screenshots)?;
 
-        Ok(shortcuts_data
-            .iter()
-            .cloned()
-            .filter_map(|shortcut_data| {
-                screenshots_data
-                    .iter_mut()
-                    // Reverse because the last entry is the newest one and this file doesn't seem to
-                    // get reset, so we want to take the one most likely to be correct
-                    .rev()
-                    .find(|d| !d.title.is_empty() && d.title == shortcut_data.title)
-                    .map(|screenshot_data| {
-                        ParsableDataCombined::combine(
-                            &path_box_art_dir,
-                            shortcut_data,
-                            mem::take(screenshot_data),
-                        )
-                    })
-            })
-            .collect())
+        Ok(Some(
+            shortcuts_data
+                .iter()
+                .cloned()
+                .filter_map(|shortcut_data| {
+                    screenshots_data
+                        .iter_mut()
+                        // Reverse because the last entry is the newest one and this file doesn't seem to
+                        // get reset, so we want to take the one most likely to be correct
+                        .rev()
+                        .find(|d| !d.title.is_empty() && d.title == shortcut_data.title)
+                        .map(|screenshot_data| {
+                            ParsableDataCombined::combine(
+                                &path_box_art_dir,
+                                shortcut_data,
+                                mem::take(screenshot_data),
+                            )
+                        })
+                })
+                .collect(),
+        ))
     }
 }
 
@@ -263,10 +264,13 @@ impl Launcher for SteamShortcuts {
     #[tracing::instrument(skip(self))]
     fn get_detected_games(&self) -> GamesResult {
         let launcher_type = self.get_launcher_type();
-        let shortcut_data = self.parse_combined_data().map_err(|e| {
-            error!("{launcher_type:?} - {e}");
-            e
-        })?;
+        let shortcut_data = self
+            .parse_combined_data()
+            .map_err(|e| {
+                error!("{launcher_type:?} - {e}");
+                e
+            })?
+            .unwrap_or_default();
 
         if shortcut_data.is_empty() {
             warn!("{launcher_type:?} - No valid shortcuts found");

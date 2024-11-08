@@ -6,7 +6,7 @@ use std::{
 };
 
 use itertools::Itertools;
-use nom::{bytes::complete::take_until, IResult};
+use nom::IResult;
 use tracing::{debug, error, trace, warn};
 
 use crate::{
@@ -66,15 +66,29 @@ fn parse_game_yml<'a>(
 ) -> IResult<&'a str, ParsableGameYmlData> {
     // EXECUTABLE_NAME
     let key_exe = "exe";
-    let (file_content, _) = parse_until_key_yml(file_content, key_exe)?;
-    let (mut file_content, line) = take_until("\n")(file_content)?;
+    let (mut file_content, _) = parse_until_key_yml(file_content, key_exe)?;
+    trace!(
+        "Lutris - game .yml file executable line: {}",
+        file_content.lines().next().unwrap_or_default()
+    );
 
-    let Some(executable_name) = line
+    // Executable path might span over multiple lines
+    let full_path = file_content
+        .lines()
+        .enumerate()
+        // Take lines up until the second `:`, as that will be next key-value pair
+        .take_while(|(i, l)| !l.contains(':') || *i == 0)
+        // Join lines, removing any additional whitespace
+        .map(|(_, l)| l.trim())
+        .join(" ");
+
+    trace!("Lutris - Parsing executable name from string: {full_path}");
+    let Some(executable_name) = full_path
         // First try to just take anything after the last '/'
         .rsplit_once('/')
         .map(|t| t.1.to_owned())
         // If value does not include `/`, then the whole thing is the executable name
-        .or_else(|| parse_value_yml(line, "exe").map(|(_, exe)| exe).ok())
+        .or_else(|| parse_value_yml(&full_path, "exe").map(|(_, exe)| exe).ok())
     else {
         error!("Error parsing '{key_exe}' line in game yml file at {file_path:?}");
         return Err(nom::Err::Failure(nom::error::make_error(
@@ -198,11 +212,15 @@ impl Lutris {
             fallback_path_games_dir.is_dir()
         );
         debug!(
-            "Lutris box art directory exists at {path_box_art_dir:?}: {}",
+            "Lutris - box art directory exists at {path_box_art_dir:?}: {}",
             path_box_art_dir.is_dir()
         );
         debug!(
-            "Lutris `game-paths.json` file exists at {path_game_paths_json:?}: {}",
+            "Lutris - fallback box art directory exists at {fallback_path_box_art_dir:?}: {}",
+            fallback_path_games_dir.is_dir()
+        );
+        debug!(
+            "Lutris - `game-paths.json` file exists at {path_game_paths_json:?}: {}",
             path_game_paths_json.is_file()
         );
 
@@ -425,22 +443,25 @@ mod tests {
         assert!(launcher.is_using_flatpak == is_testing_flatpak);
 
         let games = launcher.get_detected_games()?;
-        assert_eq!(games.len(), 4);
+        assert_eq!(games.len(), 5);
 
         assert_eq!(games[0].title, "GOG Galaxy");
         assert_eq!(games[1].title, "Epic Games Store");
         assert_eq!(games[2].title, "Warcraft 3");
         assert_eq!(games[3].title, "osu!");
+        assert_eq!(games[4].title, "Peggle");
 
         assert!(games[0].path_game_dir.is_some());
         assert!(games[1].path_game_dir.is_none());
         assert!(games[2].path_game_dir.is_none());
         assert!(games[3].path_game_dir.is_none());
+        assert!(games[4].path_game_dir.is_none());
 
         assert!(games[0].path_box_art.is_some());
         assert!(games[1].path_box_art.is_some());
         assert!(games[2].path_box_art.is_some());
         assert!(games[3].path_box_art.is_some());
+        assert!(games[4].path_box_art.is_some());
 
         Ok(())
     }

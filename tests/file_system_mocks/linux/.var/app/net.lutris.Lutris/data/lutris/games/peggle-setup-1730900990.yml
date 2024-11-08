@@ -1,0 +1,30 @@
+game:
+  exe: /home/user/Games/peggle/drive_c/Program Files (x86)/PopCap Games/Peggle
+    Deluxe/Peggle.exe
+  prefix: /home/user/Games/peggle
+game_slug: peggle
+name: Peggle
+script:
+  files:
+  - setupfile: N/A:Select the setup file
+  game:
+    exe: _xXx_AUTO_WIN32_xXx_
+    prefix: $GAMEDIR
+  installer:
+  - task:
+      arch: win64
+      env:
+        LC_ALL: ''
+      executable: /mnt/iso/PopCDRun.exe
+      prefix: /home/user/Games/peggle
+      wine_path: /home/user/.local/share/lutris/runners/wine/wine-ge-8-26-x86_64/bin/wine
+  system:
+    env:
+      LC_ALL: ''
+slug: peggle-setup
+system:
+  env:
+    LC_ALL: ''
+version: Setup file
+wine:
+  version: GE-Proton9-16

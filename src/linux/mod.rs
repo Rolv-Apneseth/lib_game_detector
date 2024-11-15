@@ -1,6 +1,5 @@
-use std::{process::exit, sync::Arc};
+use std::sync::Arc;
 
-use directories::BaseDirs;
 use tracing::error;
 
 use self::launchers::{
@@ -11,6 +10,7 @@ use self::launchers::{
     steam::{Steam, SteamShortcuts},
 };
 use crate::data::{Games, GamesDetector, GamesPerLauncher, Launchers, SupportedLaunchers};
+use dirs::{cache_dir, config_dir, data_dir, home_dir};
 
 mod launchers;
 
@@ -20,32 +20,31 @@ pub struct GamesDetectorLinux {
 
 impl GamesDetectorLinux {
     pub fn new() -> GamesDetectorLinux {
-        let Some(user_dirs) = BaseDirs::new() else {
-            error!("No valid $HOME directory found for the current user");
-            exit(1);
-        };
-
-        let launchers = GamesDetectorLinux::get_supported_launchers(&user_dirs);
-
+        let launchers = GamesDetectorLinux::get_supported_launchers();
         GamesDetectorLinux { launchers }
     }
 
-    pub fn get_supported_launchers(base_dirs: &BaseDirs) -> Launchers {
-        let path_home = base_dirs.home_dir();
-        let path_config = base_dirs.config_dir();
-        let path_cache = base_dirs.cache_dir();
-        let path_data = base_dirs.data_dir();
+    pub fn get_supported_launchers() -> Launchers {
+        let path_home = home_dir().expect("Failed to find the user's home directory");
+        let path_config = config_dir().expect("Failed to find the user's config directory");
+        let path_cache = cache_dir().expect("Failed to find the user's cache directory");
+        let path_data = data_dir().expect("Failed to find the user's data directory");
 
         vec![
-            Arc::new(Steam::new(path_home, path_data)),
-            Arc::new(SteamShortcuts::new(path_home, path_data)),
-            Arc::new(HeroicGOG::new(path_home, path_config)),
-            Arc::new(HeroicEpic::new(path_home, path_config)),
-            Arc::new(HeroicAmazon::new(path_home, path_config)),
-            Arc::new(Lutris::new(path_home, path_config, path_cache, path_data)),
-            Arc::new(Bottles::new(path_home, path_data)),
-            Arc::new(MinecraftPrism::new(path_home, path_data)),
-            Arc::new(MinecraftAT::new(path_home, path_data)),
+            Arc::new(Steam::new(&path_home, &path_data)),
+            Arc::new(SteamShortcuts::new(&path_home, &path_data)),
+            Arc::new(HeroicGOG::new(&path_home, &path_config)),
+            Arc::new(HeroicEpic::new(&path_home, &path_config)),
+            Arc::new(HeroicAmazon::new(&path_home, &path_config)),
+            Arc::new(Lutris::new(
+                &path_home,
+                &path_config,
+                &path_cache,
+                &path_data,
+            )),
+            Arc::new(Bottles::new(&path_home, &path_data)),
+            Arc::new(MinecraftPrism::new(&path_home, &path_data)),
+            Arc::new(MinecraftAT::new(&path_home, &path_data)),
         ]
     }
 }

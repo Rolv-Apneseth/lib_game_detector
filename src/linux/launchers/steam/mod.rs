@@ -5,7 +5,6 @@ use std::{
     fmt::Display,
     path::{Path, PathBuf},
     process::Command,
-    sync::{Arc, Mutex},
 };
 
 pub use steam_base::Steam;
@@ -13,7 +12,7 @@ pub use steam_shortcuts::SteamShortcuts;
 
 use crate::utils::{get_launch_command, get_launch_command_flatpak};
 
-fn get_steam_launch_command(app_id: impl Display, is_using_flatpak: bool) -> Arc<Mutex<Command>> {
+fn get_steam_launch_command(app_id: impl Display, is_using_flatpak: bool) -> Command {
     let game_run_arg = format!("steam://rungameid/{app_id}");
     let args = [game_run_arg.as_str()];
     if is_using_flatpak {

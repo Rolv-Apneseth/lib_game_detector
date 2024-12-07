@@ -2,7 +2,6 @@ use std::{
     fmt::Display,
     path::{Path, PathBuf},
     process::Command,
-    sync::{Arc, Mutex},
 };
 
 /// Cleans up parsed game title
@@ -15,11 +14,11 @@ pub fn get_launch_command<'a>(
     command: &str,
     args: impl IntoIterator<Item = &'a str>,
     env_vars: impl IntoIterator<Item = (&'a str, &'a str)>,
-) -> Arc<Mutex<Command>> {
+) -> Command {
     let mut command = Command::new(command);
     command.envs(env_vars).args(args);
 
-    Arc::new(Mutex::new(command))
+    command
 }
 
 pub fn get_launch_command_flatpak<'a>(
@@ -27,12 +26,9 @@ pub fn get_launch_command_flatpak<'a>(
     flatpak_args: impl IntoIterator<Item = &'a str>,
     other_args: impl IntoIterator<Item = &'a str>,
     env_vars: impl IntoIterator<Item = (&'a str, &'a str)>,
-) -> Arc<Mutex<Command>> {
-    let command = get_launch_command("flatpak", flatpak_args, env_vars);
-
-    if let Ok(mut c) = command.lock() {
-        c.arg("run").arg(bottle_name).args(other_args);
-    };
+) -> Command {
+    let mut command = get_launch_command("flatpak", flatpak_args, env_vars);
+    command.arg("run").arg(bottle_name).args(other_args);
 
     command
 }

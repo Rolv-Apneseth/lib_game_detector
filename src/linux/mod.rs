@@ -9,7 +9,7 @@ use self::launchers::{
     minecraft::{at::MinecraftAT, prism::MinecraftPrism},
     steam::{Steam, SteamShortcuts},
 };
-use crate::data::{Games, GamesDetector, GamesPerLauncher, Launchers, SupportedLaunchers};
+use crate::data::{Game, GamesDetector, GamesPerLauncher, Launchers, SupportedLaunchers};
 use dirs::{cache_dir, config_dir, data_dir, home_dir};
 
 mod launchers;
@@ -58,7 +58,7 @@ impl GamesDetector for GamesDetectorLinux {
             .collect()
     }
 
-    fn get_all_detected_games(&self) -> Games {
+    fn get_all_detected_games(&self) -> Vec<Game> {
         self.get_detected_launchers()
             .iter()
             .filter_map(|l| l.get_detected_games().ok())
@@ -68,7 +68,7 @@ impl GamesDetector for GamesDetectorLinux {
             })
     }
 
-    fn get_all_detected_games_with_box_art(&self) -> Games {
+    fn get_all_detected_games_with_box_art(&self) -> Vec<Game> {
         self.get_all_detected_games()
             .into_iter()
             .filter(|game| game.path_box_art.is_some())
@@ -91,7 +91,7 @@ impl GamesDetector for GamesDetectorLinux {
     fn get_all_detected_games_from_specific_launcher(
         &self,
         launcher_type: SupportedLaunchers,
-    ) -> Option<Games> {
+    ) -> Option<Vec<Game>> {
         self.get_detected_launchers()
             .into_iter()
             .find(|l| l.get_launcher_type() == launcher_type)

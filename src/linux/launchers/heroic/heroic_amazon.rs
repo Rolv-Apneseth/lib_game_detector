@@ -98,7 +98,7 @@ impl Launcher for HeroicAmazon {
                     launch_command,
                     path_box_art,
                     path_game_dir,
-                }.into()
+                }
             })
             .collect()
         )

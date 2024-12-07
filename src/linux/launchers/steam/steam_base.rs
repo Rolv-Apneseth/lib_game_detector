@@ -16,7 +16,7 @@ use tracing::{debug, error, trace, warn};
 
 use super::{get_steam_dir, get_steam_flatpak_dir, get_steam_launch_command};
 use crate::{
-    data::{Game, Games, GamesParsingError, GamesResult, Launcher, SupportedLaunchers},
+    data::{Game, GamesParsingError, GamesResult, Launcher, SupportedLaunchers},
     parsers::parse_value_json,
     utils::{clean_game_title, some_if_dir, some_if_file},
 };
@@ -140,7 +140,7 @@ impl<'steamlibrary> SteamLibrary<'steamlibrary> {
 
     /// Get all steam games associated with this library
     #[tracing::instrument]
-    pub fn get_all_games(&self) -> Result<Games, io::Error> {
+    pub fn get_all_games(&self) -> Result<Vec<Game>, io::Error> {
         let manifest_paths = self.get_manifest_paths()?;
 
         if manifest_paths.is_empty() {
@@ -153,7 +153,6 @@ impl<'steamlibrary> SteamLibrary<'steamlibrary> {
         Ok(manifest_paths
             .iter()
             .filter_map(|path| self.get_game(path))
-            .map(|g| g.into())
             .collect())
     }
 }
@@ -185,7 +184,7 @@ impl Steam {
 
     /// Get all available steam libraries by parsing the `libraryfolders.vdf` file
     #[tracing::instrument]
-    pub fn get_steam_libraries(&self) -> Result<Arc<[SteamLibrary]>, io::Error> {
+    pub fn get_steam_libraries(&self) -> Result<Vec<SteamLibrary>, io::Error> {
         let libraries_vdg_path = self.path_steam_dir.join("steamapps/libraryfolders.vdf");
 
         debug!("Steam libraryfolders.vdf path: {libraries_vdg_path:?}");
@@ -241,7 +240,10 @@ impl Launcher for Steam {
         };
 
         games
-            .reduce(|acc, e| acc.iter().cloned().chain(e.iter().cloned()).collect())
+            .reduce(|mut acc, e| {
+                acc.extend(e.into_iter());
+                acc
+            })
             .ok_or_else(|| {
                 GamesParsingError::Other(anyhow!(
                     "Failed to combine slices from Steam Libraries into a single slice"

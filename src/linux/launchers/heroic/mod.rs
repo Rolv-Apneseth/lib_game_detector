@@ -7,7 +7,6 @@ use std::{
     io,
     path::{Path, PathBuf},
     process::Command,
-    sync::{Arc, Mutex},
 };
 
 use nom::IResult;
@@ -103,7 +102,7 @@ fn get_launch_command_for_heroic_source(
     source: &str,
     app_id: &str,
     is_using_flatpak: bool,
-) -> Arc<Mutex<Command>> {
+) -> Command {
     let game_run_arg = format!("heroic://launch/{source}/{app_id}");
     let args = [game_run_arg.as_str()];
 

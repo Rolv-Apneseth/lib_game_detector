@@ -17,8 +17,9 @@ default:
 format:
     cargo +nightly fmt
 
+# Lint
 lint:
-    cargo +nightly clippy --all -- -D warnings 
+    cargo clippy --all -- -D warnings 
 
 # Build
 build: format

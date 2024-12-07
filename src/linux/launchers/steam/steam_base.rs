@@ -67,7 +67,7 @@ pub struct SteamLibrary<'steamlibrary> {
     path_steam_dir: &'steamlibrary Path,
     is_using_flatpak: bool,
 }
-impl<'steamlibrary> SteamLibrary<'steamlibrary> {
+impl SteamLibrary<'_> {
     /// Find and return paths of the app manifest files, if they exist
     #[tracing::instrument(skip(self))]
     fn get_manifest_paths(&self) -> Result<Arc<[PathBuf]>, io::Error> {

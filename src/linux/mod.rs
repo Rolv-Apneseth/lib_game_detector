@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use dirs::{cache_dir, config_dir, data_dir, home_dir};
 use tracing::error;
 
 use self::launchers::{
@@ -10,7 +11,6 @@ use self::launchers::{
     steam::{Steam, SteamShortcuts},
 };
 use crate::data::{Game, GamesDetector, GamesPerLauncher, Launchers, SupportedLaunchers};
-use dirs::{cache_dir, config_dir, data_dir, home_dir};
 
 mod launchers;
 

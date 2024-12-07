@@ -5,6 +5,7 @@ alias bl := bench-launchers
 alias d := develop
 alias e := example
 alias f := format
+alias l := lint
 
 # COMMANDS -----------------------------------------------------------------------------------------
 
@@ -15,6 +16,9 @@ default:
 # Format
 format:
     cargo +nightly fmt
+
+lint:
+    cargo +nightly clippy --all -- -D warnings 
 
 # Build
 build: format

@@ -17,7 +17,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! lib_game_detector = "0.0.8"
+//! lib_game_detector = "0.0.12"
 //! ```
 //!
 //! # Usage
@@ -68,3 +68,7 @@ cfg_if! {
         compiler_error!("This platform is currently not supported by lib_game_detector");
     }
 }
+
+// TODO: use [macro_files](https://github.com/MathieuTricoire/macro_files) to reduce size of repo
+// and more importantly to have clear definitions of expected file structures for each test. All
+// the example game files will still need to be included so as to not clutter the code though.

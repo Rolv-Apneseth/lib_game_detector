@@ -3,21 +3,19 @@ use std::{
     io,
     path::PathBuf,
     process::Command,
-    sync::{Arc, Mutex},
+    sync::Arc,
 };
 
 use thiserror::Error;
 
 /// Data structure which defines all relevant data about any particular game
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Game {
     pub title: String,
     pub path_box_art: Option<PathBuf>,
     pub path_game_dir: Option<PathBuf>,
-    pub launch_command: Arc<Mutex<Command>>,
+    pub launch_command: Command,
 }
-
-pub type Games = Vec<Arc<Game>>;
 
 /// Custom error type to be used in the custom `Games` Result type
 #[derive(Error, Debug)]
@@ -30,7 +28,7 @@ pub enum GamesParsingError {
 }
 
 /// Custom Result type for Games
-pub type GamesResult = Result<Games, GamesParsingError>;
+pub type GamesResult = Result<Vec<Game>, GamesParsingError>;
 
 /// Data structure representing a supported games source
 #[derive(PartialEq, Eq)]
@@ -75,15 +73,15 @@ pub trait Launcher: Send + Debug {
     fn get_launcher_type(&self) -> SupportedLaunchers;
 }
 pub type Launchers = Vec<Arc<dyn Launcher>>;
-pub type GamesPerLauncher = Vec<(SupportedLaunchers, Games)>;
+pub type GamesPerLauncher = Vec<(SupportedLaunchers, Vec<Game>)>;
 
 pub trait GamesDetector {
     fn get_detected_launchers(&self) -> Launchers;
-    fn get_all_detected_games(&self) -> Games;
-    fn get_all_detected_games_with_box_art(&self) -> Games;
+    fn get_all_detected_games(&self) -> Vec<Game>;
+    fn get_all_detected_games_with_box_art(&self) -> Vec<Game>;
     fn get_all_detected_games_per_launcher(&self) -> GamesPerLauncher;
     fn get_all_detected_games_from_specific_launcher(
         &self,
         launcher_type: SupportedLaunchers,
-    ) -> Option<Games>;
+    ) -> Option<Vec<Game>>;
 }

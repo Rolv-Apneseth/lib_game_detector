@@ -156,7 +156,6 @@ impl Launcher for HeroicGOG {
                     path_box_art,
                     path_game_dir,
                 }
-                .into()
             })
             .collect())
     }

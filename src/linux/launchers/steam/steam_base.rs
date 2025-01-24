@@ -116,9 +116,20 @@ impl SteamLibrary<'_> {
                 .join("steamapps/common")
                 .join(install_dir_path),
         );
-        let path_box_art = some_if_file(self.path_steam_dir.join(format!(
-            "appcache/librarycache/{app_id}_library_600x900.jpg"
-        )));
+        let path_box_art = {
+            let mut path = some_if_file(self.path_steam_dir.join(format!(
+                "appcache/librarycache/{app_id}/library_600x900.jpg"
+            )));
+
+            // Fallback to old library cache structure
+            if path.is_none() {
+                path = some_if_file(self.path_steam_dir.join(format!(
+                    "appcache/librarycache/{app_id}_library_600x900.jpg"
+                )));
+            }
+
+            path
+        };
 
         trace!("Steam - Game directory found for '{title}': {path_game_dir:?}");
         trace!("Steam - Box art found for '{title}': {path_box_art:?}");
@@ -308,10 +319,11 @@ mod tests {
 
         let games = [libraries[0].get_all_games()?, libraries[1].get_all_games()?];
 
-        assert_eq!(games[0].len(), 1);
+        assert_eq!(games[0].len(), 2);
         assert_eq!(games[1].len(), 2);
 
-        assert_eq!(games[0][0].title, "Unrailed!");
+        assert_eq!(games[0][0].title, "Sid Meier's Civilization V");
+        assert_eq!(games[0][1].title, "Unrailed!");
         assert_eq!(games[1][0].title, "Timberborn");
         assert_eq!(games[1][1].title, "Terraria");
 

@@ -1,0 +1,40 @@
+"AppState"
+{
+	"appid"		"8930"
+	"universe"		"1"
+	"name"		"Sid Meier's Civilization V"
+	"StateFlags"		"4"
+	"installdir"		"Sid Meier's Civilization V"
+	"lastupdated"		"1655806677"
+	"LastPlayed"		"1735228166"
+	"SizeOnDisk"		"8072146088"
+	"StagingSize"		"0"
+	"buildid"		"4390913"
+	"LastOwner"		"76561198092653807"
+	"UpdateResult"		"0"
+	"BytesToDownload"		"968440176"
+	"BytesDownloaded"		"968440176"
+	"BytesToStage"		"1099943819"
+	"BytesStaged"		"1099943819"
+	"TargetBuildID"		"4390913"
+	"AutoUpdateBehavior"		"0"
+	"AllowOtherDownloadsWhileRunning"		"0"
+	"ScheduledAutoUpdate"		"0"
+	"InstalledDepots"
+	{
+		"282300"
+		{
+			"manifest"		"6389225738581842747"
+			"size"		"4409331513"
+		}
+	}
+	"UserConfig"
+	{
+		"language"		"english"
+	}
+	"MountedConfig"
+	{
+		"language"		"english"
+	}
+}
+

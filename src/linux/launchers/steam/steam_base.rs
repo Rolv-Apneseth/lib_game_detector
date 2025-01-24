@@ -317,15 +317,18 @@ mod tests {
             },
         ];
 
-        let games = [libraries[0].get_all_games()?, libraries[1].get_all_games()?];
+        let mut games = [libraries[0].get_all_games()?, libraries[1].get_all_games()?];
 
         assert_eq!(games[0].len(), 2);
         assert_eq!(games[1].len(), 2);
 
+        games[0].sort_by_key(|a| a.title.clone());
+        games[1].sort_by_key(|a| a.title.clone());
+
         assert_eq!(games[0][0].title, "Sid Meier's Civilization V");
         assert_eq!(games[0][1].title, "Unrailed!");
-        assert_eq!(games[1][0].title, "Timberborn");
-        assert_eq!(games[1][1].title, "Terraria");
+        assert_eq!(games[1][0].title, "Terraria");
+        assert_eq!(games[1][1].title, "Timberborn");
 
         assert!(games[0][0].path_game_dir.is_some());
         assert!(games[1][0].path_game_dir.is_some());

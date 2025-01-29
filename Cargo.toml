@@ -1,6 +1,6 @@
 [package]
 name = "lib_game_detector"
-version = "0.0.14"
+version = "0.0.15"
 edition = "2021"
 description = "A Rust library for detecting and parsing data about games installed on the system"
 readme = "README.md"
@@ -16,6 +16,7 @@ itertools = "0.13.0"
 anyhow = "1.0.86"
 thiserror = "2.0.3"
 steam_shortcuts_util = "1.1.8"
+walkdir = "2.5.0"
 
 [dev-dependencies]
 criterion = { version = "0.5.1", features = ["html_reports"] }

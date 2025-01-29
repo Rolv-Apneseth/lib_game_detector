@@ -13,6 +13,7 @@ use nom::{
     IResult,
 };
 use tracing::{debug, error, trace, warn};
+use walkdir::WalkDir;
 
 use super::{get_steam_dir, get_steam_flatpak_dir, get_steam_launch_command};
 use crate::{
@@ -116,16 +117,44 @@ impl SteamLibrary<'_> {
                 .join("steamapps/common")
                 .join(install_dir_path),
         );
+
         let path_box_art = {
+            let box_art_file_name = "library_600x900.jpg";
+
+            // Old library cache structure
             let mut path = some_if_file(self.path_steam_dir.join(format!(
-                "appcache/librarycache/{app_id}/library_600x900.jpg"
+                "appcache/librarycache/{app_id}_{box_art_file_name}"
             )));
 
-            // Fallback to old library cache structure
+            // In the new structure, the file is not in the root `librarycache` dir, but rather in
+            // a dir named after the `app_id`.
             if path.is_none() {
                 path = some_if_file(self.path_steam_dir.join(format!(
-                    "appcache/librarycache/{app_id}_library_600x900.jpg"
+                    "appcache/librarycache/{app_id}/{box_art_file_name}"
                 )));
+            }
+
+            // It can also appear in any sub-dir within that `app_id` dir, but we check the
+            // above, non-nested path first to save time.
+            if path.is_none() {
+                path = WalkDir::new(
+                    self.path_steam_dir
+                        .join(format!("appcache/librarycache/{app_id}")),
+                )
+                .min_depth(2)
+                .max_depth(2)
+                .contents_first(true)
+                .into_iter()
+                .find_map(|res| {
+                    let dir_entry = res.ok()?;
+                    let file_name = dir_entry.file_name().to_str()?;
+
+                    if file_name == box_art_file_name {
+                        Some(dir_entry.path().to_owned())
+                    } else {
+                        None
+                    }
+                });
             }
 
             path
@@ -134,7 +163,7 @@ impl SteamLibrary<'_> {
         trace!("Steam - Game directory found for '{title}': {path_game_dir:?}");
         trace!("Steam - Box art found for '{title}': {path_box_art:?}");
 
-        // Skip entries without box art as they are not games (runtimes, redistributables, etc.),
+        // Skip entries without box art as they are not games (runtimes, redistributables, DLC, etc.),
         // at least as far as I know
         if path_box_art.is_none() {
             trace!("Skipped steam title as no box art exists for it: {title:?}");
@@ -319,7 +348,7 @@ mod tests {
 
         let mut games = [libraries[0].get_all_games()?, libraries[1].get_all_games()?];
 
-        assert_eq!(games[0].len(), 2);
+        assert_eq!(games[0].len(), 3);
         assert_eq!(games[1].len(), 2);
 
         games[0].sort_by_key(|a| a.title.clone());
@@ -327,12 +356,19 @@ mod tests {
 
         assert_eq!(games[0][0].title, "Sid Meier's Civilization V");
         assert_eq!(games[0][1].title, "Unrailed!");
+        assert_eq!(games[0][2].title, "Warhammer 40,000: Speed Freeks");
         assert_eq!(games[1][0].title, "Terraria");
         assert_eq!(games[1][1].title, "Timberborn");
 
-        assert!(games[0][0].path_game_dir.is_some());
-        assert!(games[1][0].path_game_dir.is_some());
-        assert!(games[1][1].path_game_dir.is_some());
+        assert!(games[0][2].path_box_art.as_ref().is_some_and(|p| p
+            .file_name()
+            .is_some_and(|f| f.to_string_lossy() == "library_600x900.jpg")));
+
+        games.into_iter().for_each(|lib| {
+            lib.into_iter().for_each(|game| {
+                assert!(game.path_game_dir.is_some());
+            })
+        });
 
         Ok(())
     }

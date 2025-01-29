@@ -1,0 +1,42 @@
+"AppState"
+{
+	"appid"		"2078450"
+	"universe"		"1"
+	"name"		"Warhammer 40,000: Speed Freeks"
+	"StateFlags"		"4"
+	"installdir"		"WHSF1"
+	"lastupdated"		"1736803297"
+	"LastPlayed"		"1738179777"
+	"SizeOnDisk"		"16414937689"
+	"StagingSize"		"0"
+	"buildid"		"16901843"
+	"LastOwner"		"76561198092653807"
+	"AutoUpdateBehavior"		"0"
+	"AllowOtherDownloadsWhileRunning"		"0"
+	"ScheduledAutoUpdate"		"0"
+	"InstalledDepots"
+	{
+		"2078451"
+		{
+			"manifest"		"7283908048628470108"
+			"size"		"16414937689"
+		}
+	}
+	"InstallScripts"
+	{
+		"2078451"		"Engine\\Extras\\Redist\\client_install_script.vdf"
+	}
+	"SharedDepots"
+	{
+		"228988"		"228980"
+		"228990"		"228980"
+	}
+	"UserConfig"
+	{
+		"language"		"english"
+	}
+	"MountedConfig"
+	{
+		"language"		"english"
+	}
+}

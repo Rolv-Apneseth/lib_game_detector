@@ -17,7 +17,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! lib_game_detector = "0.0.12"
+//! lib_game_detector = "0.0.15"
 //! ```
 //!
 //! # Usage

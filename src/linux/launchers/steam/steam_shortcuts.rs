@@ -70,8 +70,10 @@ pub struct UserDataFiles {
     path_box_art_dir: PathBuf,
 }
 
+const LAUNCHER: SupportedLaunchers = SupportedLaunchers::SteamShortcuts;
+
 // UTILS -----------------------------------------------------------------------------------------
-#[tracing::instrument()]
+#[tracing::instrument(level = "trace")]
 fn find_userdata_files(
     path_steam_userdata_dir: &Path,
 ) -> Result<Vec<UserDataFiles>, GamesParsingError> {
@@ -87,20 +89,24 @@ fn find_userdata_files(
 
             let path_screenshots = p.join("760").join("screenshots.vdf");
             if !path_screenshots.is_file() {
-                trace!("Couldn't find Steam user screenshots file at {path_screenshots:?}");
+                trace!(
+                    "{LAUNCHER} - Couldn't find Steam user screenshots file at {path_screenshots:?}"
+                );
                 return None;
             }
 
             let path_shortcuts = path_config.join("shortcuts.vdf");
             if !path_shortcuts.is_file() {
-                trace!("Couldn't find Steam user shortcuts file at {path_shortcuts:?}");
+                trace!(
+                    "{LAUNCHER} - Couldn't find Steam user shortcuts file at {path_shortcuts:?}"
+                );
                 return None;
             }
 
             let path_box_art_dir = path_config.join("grid");
             if !path_box_art_dir.is_dir() {
                 trace!(
-                    "Couldn't find Steam user shortcuts box art directory at {path_shortcuts:?}"
+                    "{LAUNCHER} - Couldn't find Steam user shortcuts box art directory at {path_shortcuts:?}"
                 );
                 return None;
             }
@@ -114,7 +120,7 @@ fn find_userdata_files(
         .collect())
 }
 
-#[tracing::instrument]
+#[tracing::instrument(level = "trace")]
 fn get_parsable_shortcuts_data(
     path_shortcuts: &Path,
 ) -> Result<Vec<ParsableShortcutData>, GamesParsingError> {
@@ -131,7 +137,7 @@ fn get_parsable_shortcuts_data(
         .collect())
 }
 
-#[tracing::instrument]
+#[tracing::instrument(level = "trace")]
 fn get_parsable_screenshots_data(
     path_screenshots: &Path,
 ) -> Result<Vec<ParsableScreenshotData>, GamesParsingError> {
@@ -146,7 +152,7 @@ fn get_parsable_screenshots_data(
     Ok(data)
 }
 
-#[tracing::instrument(skip(file_content))]
+#[tracing::instrument(level = "trace", skip(file_content))]
 fn parse_screenshots_vdf<'a>(
     file_content: &'a str,
     file_path: &Path,
@@ -195,12 +201,14 @@ impl SteamShortcuts {
         let mut is_using_flatpak = false;
 
         if !path_steam_userdata_dir.is_dir() {
+            debug!("{LAUNCHER} - Attempting to fall back to flatpak directory");
+
             is_using_flatpak = true;
             path_steam_userdata_dir = get_steam_flatpak_dir(path_home).join("userdata");
         };
 
         debug!(
-            "Steam userdata dir path exists: {}",
+            "{LAUNCHER} - userdata dir path exists: {}",
             path_steam_userdata_dir.is_dir()
         );
 
@@ -210,7 +218,7 @@ impl SteamShortcuts {
         }
     }
 
-    #[tracing::instrument]
+    #[tracing::instrument(level = "trace")]
     fn parse_combined_data(&self) -> Result<Option<Vec<ParsableDataCombined>>, GamesParsingError> {
         let shortcut_files = find_userdata_files(&self.path_steam_userdata_dir)?;
 
@@ -254,26 +262,25 @@ impl SteamShortcuts {
 
 impl Launcher for SteamShortcuts {
     fn get_launcher_type(&self) -> SupportedLaunchers {
-        SupportedLaunchers::SteamShortcuts
+        LAUNCHER
     }
 
     fn is_detected(&self) -> bool {
         self.path_steam_userdata_dir.is_dir()
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(level = "trace")]
     fn get_detected_games(&self) -> GamesResult {
-        let launcher_type = self.get_launcher_type();
         let shortcut_data = self
             .parse_combined_data()
             .map_err(|e| {
-                error!("{launcher_type:?} - {e}");
+                error!("{LAUNCHER} - {e}");
                 e
             })?
             .unwrap_or_default();
 
         if shortcut_data.is_empty() {
-            warn!("{launcher_type:?} - No valid shortcuts found");
+            warn!("{LAUNCHER} - No valid shortcuts found");
         }
 
         Ok(shortcut_data
@@ -288,10 +295,8 @@ impl Launcher for SteamShortcuts {
                     let path_game_dir = None;
                     let title = clean_game_title(title);
 
-                    trace!(
-                        "{launcher_type:?} - Game directory found for '{title}': {path_game_dir:?}"
-                    );
-                    trace!("{launcher_type:?} - Box art found for '{title}': {path_box_art:?}");
+                    trace!("{LAUNCHER} - Game directory found for '{title}': {path_game_dir:?}");
+                    trace!("{LAUNCHER} - Box art found for '{title}': {path_box_art:?}");
 
                     Game {
                         title: clean_game_title(&title),

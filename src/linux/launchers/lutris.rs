@@ -56,10 +56,12 @@ impl ParsableDataCombined {
     }
 }
 
+const LAUNCHER: SupportedLaunchers = SupportedLaunchers::Lutris;
+
 // UTILS --------------------------------------------------------------------------------
 /// Used for parsing relevant game's data from the given game `.yml` file's contents
 // A bit complicated due to edge cases where only the executable name is defined in the file
-#[tracing::instrument(skip(file_content))]
+#[tracing::instrument(level = "trace", skip(file_content))]
 fn parse_game_yml<'a>(
     file_content: &'a str,
     file_path: &Path,
@@ -68,7 +70,7 @@ fn parse_game_yml<'a>(
     let key_exe = "exe";
     let (mut file_content, _) = parse_until_key_yml(file_content, key_exe)?;
     trace!(
-        "Lutris - game .yml file executable line: {}",
+        "{LAUNCHER} - game .yml file executable line: {}",
         file_content.lines().next().unwrap_or_default()
     );
 
@@ -82,7 +84,7 @@ fn parse_game_yml<'a>(
         .map(|(_, l)| l.trim())
         .join(" ");
 
-    trace!("Lutris - Parsing executable name from string: {full_path}");
+    trace!("{LAUNCHER} - Parsing executable name from string: {full_path}");
     let Some(executable_name) = full_path
         // First try to just take anything after the last '/'
         .rsplit_once('/')
@@ -90,7 +92,7 @@ fn parse_game_yml<'a>(
         // If value does not include `/`, then the whole thing is the executable name
         .or_else(|| parse_value_yml(&full_path, "exe").map(|(_, exe)| exe).ok())
     else {
-        error!("Error parsing '{key_exe}' line in game yml file at {file_path:?}");
+        error!("{LAUNCHER} - Error parsing '{key_exe}' line in game yml file at {file_path:?}");
         return Err(nom::Err::Failure(nom::error::make_error(
             file_content,
             nom::error::ErrorKind::Fail,
@@ -187,7 +189,8 @@ impl Lutris {
         if !path_config_lutris.is_dir()
             && (!path_cache_lutris.is_dir() || !path_data_lutris.is_dir())
         {
-            trace!("Attempting to fall back to flatpak directory");
+            debug!("{LAUNCHER} - Attempting to fall back to flatpak directory");
+
             is_using_flatpak = true;
             let path_flatpak = path_home.join(".var/app/net.lutris.Lutris");
             path_config_lutris = path_flatpak.join("data/lutris");
@@ -201,26 +204,24 @@ impl Lutris {
         let fallback_path_games_dir = path_data_lutris.join("games");
         let fallback_path_box_art_dir = path_data_lutris.join("coverart");
 
-        debug!("Lutris - using flatpak: {is_using_flatpak}");
-
         debug!(
-            "Lutris - games directory exists at {path_games_dir:?}: {}",
+            "{LAUNCHER} - games directory exists at {path_games_dir:?}: {}",
             path_games_dir.is_dir()
         );
         debug!(
-            "Lutris - fallback games directory exists at {fallback_path_games_dir:?}: {}",
+            "{LAUNCHER} - fallback games directory exists at {fallback_path_games_dir:?}: {}",
             fallback_path_games_dir.is_dir()
         );
         debug!(
-            "Lutris - box art directory exists at {path_box_art_dir:?}: {}",
+            "{LAUNCHER} - box art directory exists at {path_box_art_dir:?}: {}",
             path_box_art_dir.is_dir()
         );
         debug!(
-            "Lutris - fallback box art directory exists at {fallback_path_box_art_dir:?}: {}",
+            "{LAUNCHER} - fallback box art directory exists at {fallback_path_box_art_dir:?}: {}",
             fallback_path_games_dir.is_dir()
         );
         debug!(
-            "Lutris - `game-paths.json` file exists at {path_game_paths_json:?}: {}",
+            "{LAUNCHER} - `game-paths.json` file exists at {path_game_paths_json:?}: {}",
             path_game_paths_json.is_file()
         );
 
@@ -253,11 +254,11 @@ impl Lutris {
     }
 
     /// Parse data from the Lutris `game-paths.json` file
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(level = "trace")]
     fn parse_game_paths_json(&self) -> Result<Arc<[ParsableGamePathsData]>, io::Error> {
         let game_paths_json_file = File::open(&self.path_game_paths_json).map_err(|e| {
             error!(
-                "Error with reading game-paths.json file at {:?}:\n{e}",
+                "{LAUNCHER} - Error with reading game-paths.json file at {:?}:\n{e}",
                 self.path_game_paths_json
             );
             e
@@ -272,7 +273,10 @@ impl Lutris {
                         let Some((parsed_game_dir, parsed_executable_name)) =
                             exe_path.rsplit_once('/')
                         else {
-                            error!("Error extracting executable name from {:?}", exe_path);
+                            error!(
+                                "{LAUNCHER} - Error extracting executable name from {:?}",
+                                exe_path
+                            );
                             return None;
                         };
 
@@ -293,11 +297,11 @@ impl Lutris {
     }
 
     /// Parse data from the Lutris games directory, which contains 1 `.yml` file for each game
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(level = "trace")]
     fn parse_games_dir(&self) -> Result<Arc<[ParsableGameYmlData]>, io::Error> {
         Ok(read_dir(self.path_games_dir_with_fallback())
             .map_err(|e| {
-                error!("Error with reading games directory for Lutris: {e:?}");
+                error!("{LAUNCHER} - Error with reading games directory for Lutris: {e:?}");
                 e
             })?
             .flatten()
@@ -306,12 +310,12 @@ impl Lutris {
     }
 
     /// Parse relevant game data from a given Lutris game's `.yml` file
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(level = "trace")]
     fn get_parsable_game_yml_data(&self, path_game_yml: PathBuf) -> Option<ParsableGameYmlData> {
         let file_content = &read_to_string(&path_game_yml)
             .map_err(|e| {
                 error!(
-                    "Error with reading Lutris game `.yml` file at {:?}:\n{e}",
+                    "{LAUNCHER} - Error with reading Lutris game `.yml` file at {:?}:\n{e}",
                     &path_game_yml
                 )
             })
@@ -351,15 +355,15 @@ impl Launcher for Lutris {
     }
 
     fn get_launcher_type(&self) -> SupportedLaunchers {
-        SupportedLaunchers::Lutris
+        LAUNCHER
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(level = "trace")]
     fn get_detected_games(&self) -> GamesResult {
         let parsed_data = self.parse_game_data()?;
 
         if parsed_data.is_empty() {
-            warn!("No games (at least not with sufficient data) found for Lutris launcher");
+            warn!("{LAUNCHER} - No games found");
         }
 
         Ok(parsed_data
@@ -383,7 +387,7 @@ impl Launcher for Lutris {
                         }
                     };
 
-                    debug!("{launch_command:?}");
+                    trace!("{LAUNCHER} - launch_command: {launch_command:?}");
 
                     let path_box_art = {
                         let mut path = None;
@@ -400,8 +404,8 @@ impl Launcher for Lutris {
 
                     let path_game_dir = some_if_dir(PathBuf::from(game_dir));
 
-                    trace!("Lutris - Game directory found for '{title}': {path_game_dir:?}");
-                    trace!("Lutris - Box art found for '{title}': {path_box_art:?}");
+                    trace!("{LAUNCHER} - Game directory found for '{title}': {path_game_dir:?}");
+                    trace!("{LAUNCHER} - Box art found for '{title}': {path_box_art:?}");
 
                     Game {
                         title: clean_game_title(title),

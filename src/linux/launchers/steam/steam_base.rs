@@ -28,6 +28,8 @@ struct ParsableManifestData {
     install_dir_path: String,
 }
 
+const LAUNCHER: SupportedLaunchers = SupportedLaunchers::Steam;
+
 // UTILS --------------------------------------------------------------------------------
 /// Used for checking if a file name matches the structure for an app manifest file
 #[tracing::instrument]
@@ -40,7 +42,7 @@ fn parse_manifest_filename(filename: &str) -> IResult<&str, &str> {
 }
 
 /// Used for parsing relevant game's data from the given app manifest file's contents
-#[tracing::instrument(skip_all)]
+#[tracing::instrument(level = "trace", skip(file_content))]
 fn parse_game_manifest(file_content: &str) -> IResult<&str, ParsableManifestData> {
     // ID
     let (file_content, app_id) = parse_value_json(file_content, "appid")?;
@@ -70,7 +72,7 @@ pub struct SteamLibrary<'steamlibrary> {
 }
 impl SteamLibrary<'_> {
     /// Find and return paths of the app manifest files, if they exist
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(level = "trace")]
     fn get_manifest_paths(&self) -> Result<Arc<[PathBuf]>, io::Error> {
         Ok(read_dir(self.path_library.join("steamapps"))?
             .flatten()
@@ -78,12 +80,12 @@ impl SteamLibrary<'_> {
                 let filename_os_str = path.file_name();
 
                 let Some(filename) = filename_os_str.to_str() else {
-                    debug!("Could not convert OS string to str: {filename_os_str:?}");
+                    debug!("{LAUNCHER} - Could not convert OS string to str: {filename_os_str:?}");
                     return None;
                 };
 
                 if parse_manifest_filename(filename).is_err() {
-                    trace!("File skipped as it did not match the pattern of a manifest file: {filename}");
+                    trace!("{LAUNCHER} - File skipped as it did not match the pattern of a manifest file: {filename}");
                     return None;
                 };
 
@@ -93,11 +95,11 @@ impl SteamLibrary<'_> {
     }
 
     /// Returns a new Game from the given path to a steam app manifest file (`appmanifest_.*.acf`)
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(level = "trace")]
     fn get_game(&self, path_app_manifest: &PathBuf) -> Option<Game> {
         let file_content = read_to_string(path_app_manifest)
             .map_err(|e| {
-                error!("Error with reading Steam app manifest file at {path_app_manifest:?}:\n{e}");
+                error!("{LAUNCHER} - Error with reading Steam app manifest file at {path_app_manifest:?}:\n{e}");
             })
             .ok()?;
 
@@ -160,13 +162,13 @@ impl SteamLibrary<'_> {
             path
         };
 
-        trace!("Steam - Game directory found for '{title}': {path_game_dir:?}");
-        trace!("Steam - Box art found for '{title}': {path_box_art:?}");
+        trace!("{LAUNCHER} - Game directory found for '{title}': {path_game_dir:?}");
+        trace!("{LAUNCHER} - Box art found for '{title}': {path_box_art:?}");
 
         // Skip entries without box art as they are not games (runtimes, redistributables, DLC, etc.),
         // at least as far as I know
         if path_box_art.is_none() {
-            trace!("Skipped steam title as no box art exists for it: {title:?}");
+            trace!("{LAUNCHER} - Skipped steam title as no box art exists for it: {title:?}");
             return None;
         }
 
@@ -179,13 +181,13 @@ impl SteamLibrary<'_> {
     }
 
     /// Get all steam games associated with this library
-    #[tracing::instrument]
+    #[tracing::instrument(level = "trace")]
     pub fn get_all_games(&self) -> Result<Vec<Game>, io::Error> {
         let manifest_paths = self.get_manifest_paths()?;
 
         if manifest_paths.is_empty() {
             warn!(
-                "No app manifest files found for steam library: {:?}",
+                "{LAUNCHER} - No app manifest files found for steam library: {:?}",
                 self.path_library
             );
         };
@@ -210,11 +212,16 @@ impl Steam {
         let mut is_using_flatpak = false;
 
         if !path_steam_dir.is_dir() {
+            debug!("{LAUNCHER} - Attempting to fall back to flatpak directory");
+
             is_using_flatpak = true;
             path_steam_dir = get_steam_flatpak_dir(path_home);
         };
 
-        debug!("Steam dir path exists: {}", path_steam_dir.is_dir());
+        debug!(
+            "{LAUNCHER} - Steam dir path exists: {}",
+            path_steam_dir.is_dir()
+        );
 
         Steam {
             path_steam_dir,
@@ -223,11 +230,11 @@ impl Steam {
     }
 
     /// Get all available steam libraries by parsing the `libraryfolders.vdf` file
-    #[tracing::instrument]
+    #[tracing::instrument(level = "trace")]
     pub fn get_steam_libraries(&self) -> Result<Vec<SteamLibrary>, io::Error> {
         let libraries_vdg_path = self.path_steam_dir.join("steamapps/libraryfolders.vdf");
 
-        debug!("Steam libraryfolders.vdf path: {libraries_vdg_path:?}");
+        debug!("{LAUNCHER} - libraryfolders.vdf path: {libraries_vdg_path:?}");
 
         Ok(BufReader::new(File::open(libraries_vdg_path)?)
             .lines()
@@ -247,17 +254,17 @@ impl Steam {
 
 impl Launcher for Steam {
     fn get_launcher_type(&self) -> SupportedLaunchers {
-        SupportedLaunchers::Steam
+        LAUNCHER
     }
 
     fn is_detected(&self) -> bool {
         self.path_steam_dir.is_dir()
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(level = "trace")]
     fn get_detected_games(&self) -> GamesResult {
         let libraries = self.get_steam_libraries().map_err(|e| {
-            error!("Error with parsing steam libraries:\n{e}");
+            error!("{LAUNCHER} - Error with parsing steam libraries:\n{e}");
             e
         })?;
 
@@ -267,7 +274,7 @@ impl Launcher for Steam {
                 library
                     .get_all_games()
                     .map_err(|e| { error!(
-                        "Error with parsing games from a Steam library.\nLibrary: {library:?}\nError:
+                        "{LAUNCHER} - Error with parsing games from a Steam library.\nLibrary: {library:?}\nError:
                         {e:?}"
                     )})
                     .ok()

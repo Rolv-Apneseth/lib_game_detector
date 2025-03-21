@@ -10,7 +10,7 @@ use std::{
 };
 
 use nom::IResult;
-use tracing::trace;
+use tracing::debug;
 
 use crate::{
     parsers::{parse_value_json, parse_value_json_unquoted},
@@ -26,7 +26,7 @@ struct ParsableLibraryData {
 }
 
 /// Parses a single (installed) game from a Heroic Games Launcher library file
-#[tracing::instrument(skip_all)]
+#[tracing::instrument(level = "trace", skip(file_content))]
 fn parse_game_from_library(file_content: &str) -> IResult<&str, ParsableLibraryData> {
     // ID
     let (file_content, app_id) = parse_value_json(file_content, "app_name")?;
@@ -88,7 +88,7 @@ fn get_heroic_config_path(path_home: &Path, path_config: &Path) -> (PathBuf, boo
     let mut path_heroic_config = path_config.join("heroic");
 
     if !path_heroic_config.is_dir() {
-        trace!("Heroic - Attempting to fall back to flatpak directory");
+        debug!("Heroic - Attempting to fall back to flatpak directory");
         is_using_flatpak = true;
 
         path_heroic_config = path_home.join(".var/app/com.heroicgameslauncher.hgl/config/heroic");

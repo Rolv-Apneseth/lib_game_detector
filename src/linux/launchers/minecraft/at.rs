@@ -4,7 +4,7 @@ use std::{
 };
 
 use nom::IResult;
-use tracing::{error, trace};
+use tracing::{debug, error, trace};
 
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
@@ -17,8 +17,10 @@ struct ParsableInstanceConfigData {
     title: String,
 }
 
+const LAUNCHER: SupportedLaunchers = SupportedLaunchers::MinecraftAT;
+
 /// Used for parsing relevant instance's data from the given `instance.json` file's contents
-#[tracing::instrument(skip_all)]
+#[tracing::instrument(level = "trace", skip(file_content))]
 fn parse_instance_config(file_content: &str) -> IResult<&str, ParsableInstanceConfigData> {
     // TITLE
     let (file_content, title) = parse_value_json(file_content, "name")?;
@@ -38,7 +40,7 @@ impl MinecraftAT {
         let mut path_root = path_data.join("atlauncher");
 
         if !path_root.is_dir() {
-            trace!("Minecraft (AT) - Attempting to fall back to flatpak directory");
+            debug!("{LAUNCHER} - Attempting to fall back to flatpak directory");
             is_using_flatpak = true;
             path_root = path_home.join(".var/app/com.atlauncher.ATLauncher/data");
         }
@@ -58,10 +60,10 @@ impl Launcher for MinecraftAT {
     }
 
     fn get_launcher_type(&self) -> crate::data::SupportedLaunchers {
-        SupportedLaunchers::MinecraftAT
+        LAUNCHER
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(level = "trace")]
     fn get_detected_games(&self) -> GamesResult {
         Ok(read_dir(&self.path_instances)?
             .flatten()
@@ -77,7 +79,7 @@ impl Launcher for MinecraftAT {
                     };
                 };
 
-                error!("Minecraft (AT) - error parsing instance file at {config_path:?}");
+                error!("{LAUNCHER} - error parsing instance file at {config_path:?}");
                 None
             })
             .map(|(instance_path, ParsableInstanceConfigData { title })| {
@@ -89,15 +91,15 @@ impl Launcher for MinecraftAT {
                         get_launch_command("atlauncher", args, [])
                     }
                 };
-                trace!("Minecraft (AT) - launch command for '{title}': {launch_command:?}");
+                trace!("{LAUNCHER} - launch command for '{title}': {launch_command:?}");
 
                 let path_game_dir = some_if_dir(instance_path);
 
                 // No box art provided
                 let path_box_art = None;
 
-                trace!("Minecraft (AT) - Game directory found for '{title}': {path_game_dir:?}");
-                trace!("Minecraft (AT) - Box art found for '{title}': {path_box_art:?}");
+                trace!("{LAUNCHER} - Game directory found for '{title}': {path_game_dir:?}");
+                trace!("{LAUNCHER} - Box art found for '{title}': {path_box_art:?}");
 
                 Game {
                     title: get_minecraft_title(&title),

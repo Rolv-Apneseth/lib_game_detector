@@ -31,15 +31,15 @@ fn per_launcher_benchmark(c: &mut Criterion) {
 
     group.bench_function("heroic - epic", |b| {
         b.iter(|| {
-            detector.get_all_detected_games_from_specific_launcher(
-                SupportedLaunchers::HeroicGamesEpicGames,
-            )
+            detector
+                .get_all_detected_games_from_specific_launcher(SupportedLaunchers::HeroicGamesEpic)
         })
     });
 
     group.bench_function("heroic - gog", |b| {
         b.iter(|| {
-            detector.get_all_detected_games_from_specific_launcher(SupportedLaunchers::HeroicGOG)
+            detector
+                .get_all_detected_games_from_specific_launcher(SupportedLaunchers::HeroicGamesGOG)
         })
     });
 

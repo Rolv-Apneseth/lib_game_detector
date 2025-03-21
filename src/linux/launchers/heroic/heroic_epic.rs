@@ -14,6 +14,8 @@ use crate::{
     utils::{some_if_dir, some_if_file},
 };
 
+const LAUNCHER: SupportedLaunchers = SupportedLaunchers::HeroicGamesEpic;
+
 #[derive(Debug)]
 pub struct HeroicEpic {
     path_legendary_library: PathBuf,
@@ -29,7 +31,7 @@ impl HeroicEpic {
         let path_icons = path_heroic_config.join("icons");
 
         debug!(
-            "Heroic Launcher's legendary_library json file exists: {}",
+            "{LAUNCHER} - legendary_library json file exists: {}",
             path_install_info.exists()
         );
 
@@ -41,17 +43,17 @@ impl HeroicEpic {
     }
 
     /// Parse all relevant games' data from `legendary_library.json`
-    #[tracing::instrument]
+    #[tracing::instrument(level = "trace")]
     fn parse_legendary_library(&self) -> Result<Vec<ParsableLibraryData>, io::Error> {
         trace!(
-            "Parsing Heroic Launcher Legendary library file at {:?}",
+            "{LAUNCHER} - Parsing Legendary library file at {:?}",
             self.path_legendary_library
         );
 
         parse_all_games_from_library(&self.path_legendary_library).inspect(|data| {
             if data.is_empty() {
                 warn!(
-                    "No games were parsed from the Legendary library file at {:?}",
+                    "{LAUNCHER} - No games were parsed from the Legendary library file at {:?}",
                     self.path_legendary_library
                 )
             };
@@ -65,10 +67,10 @@ impl Launcher for HeroicEpic {
     }
 
     fn get_launcher_type(&self) -> crate::data::SupportedLaunchers {
-        SupportedLaunchers::HeroicGamesEpicGames
+        LAUNCHER
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(level = "trace")]
     fn get_detected_games(&self) -> GamesResult {
         let parsed_data = self.parse_legendary_library().map_err(|e| {
             error!("Error parsing the Heroic Games Legendary library file: {e}");
@@ -79,19 +81,23 @@ impl Launcher for HeroicEpic {
             .into_iter()
             .map(|parsed_data| {
                 let ParsableLibraryData {
-                app_id,
-                install_path,
-                title,
-            } = parsed_data;
+                    app_id,
+                    install_path,
+                    title,
+                } = parsed_data;
 
-                let launch_command = get_launch_command_for_heroic_source("legendary", &app_id, self.is_using_flatpak);
-                trace!("Heroic (Epic) - launch command for '{title}': {launch_command:?}");
+                let launch_command = get_launch_command_for_heroic_source(
+                    "legendary",
+                    &app_id,
+                    self.is_using_flatpak,
+                );
+                trace!("{LAUNCHER} - launch command for '{title}': {launch_command:?}");
 
                 let path_game_dir = some_if_dir(PathBuf::from(install_path));
                 let path_box_art = some_if_file(self.path_icons.join(format!("{app_id}.jpg")));
 
-                trace!("Heroic Launcher (Epic) - Game directory found for '{title}': {path_game_dir:?}");
-                trace!("Heroic Launcher (Epic) - Box art found for '{title}': {path_box_art:?}");
+                trace!("{LAUNCHER} - Game directory found for '{title}': {path_game_dir:?}");
+                trace!("{LAUNCHER} - Box art found for '{title}': {path_box_art:?}");
 
                 Game {
                     title,
@@ -100,8 +106,7 @@ impl Launcher for HeroicEpic {
                     path_game_dir,
                 }
             })
-            .collect()
-        )
+            .collect())
     }
 }
 

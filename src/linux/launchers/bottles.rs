@@ -59,9 +59,11 @@ impl ParsableDataCombined {
     }
 }
 
+const LAUNCHER: SupportedLaunchers = SupportedLaunchers::Bottles;
+
 // UTILS --------------------------------------------------------------------------------
 /// Used for parsing a single game's relevant data from the given bottle `.yml` file's contents
-#[tracing::instrument(skip(file_content))]
+#[tracing::instrument(level = "trace", skip(file_content))]
 fn parse_game_from_bottle_yml(file_content: &str) -> IResult<&str, ParsableBottleYmlData> {
     // GAME DIR
     let key_game_dir = "folder";
@@ -96,7 +98,7 @@ fn parse_game_from_bottle_yml(file_content: &str) -> IResult<&str, ParsableBottl
 }
 
 /// Used for parsing relevant games' data from the given bottle library file's contents
-#[tracing::instrument(skip(file_content))]
+#[tracing::instrument(level = "trace", skip(file_content))]
 fn parse_game_from_library<'a>(file_content: &'a str) -> IResult<&'a str, ParsableLibraryData> {
     // BOTTLE NAME
     let key_bottle_name = "name";
@@ -156,7 +158,8 @@ impl Bottles {
         let mut is_using_flatpak = false;
 
         if !path_bottles_data.is_dir() {
-            trace!("Bottles - Attempting to fall back to flatpak directory");
+            debug!("{LAUNCHER} - Attempting to fall back to flatpak directory");
+
             is_using_flatpak = true;
             path_bottles_data = path_home.join(".var/app/com.usebottles.bottles/data/bottles");
         }
@@ -164,14 +167,17 @@ impl Bottles {
         let path_bottles_dir = path_bottles_data.join("bottles");
         let path_bottles_library = path_bottles_data.join("library.yml");
 
-        debug!("Bottles - using flatpak: {is_using_flatpak}");
+        debug!("{LAUNCHER} - using flatpak: {is_using_flatpak}");
         debug!(
-            "Bottles - data directory exists: {}",
+            "{LAUNCHER} - data directory exists: {}",
             path_bottles_data.is_dir()
         );
-        debug!("Bottles - directory exists: {}", path_bottles_dir.is_dir());
         debug!(
-            "Bottles - library yaml file exists: {}",
+            "{LAUNCHER} - directory exists: {}",
+            path_bottles_dir.is_dir()
+        );
+        debug!(
+            "{LAUNCHER} - library yaml file exists: {}",
             path_bottles_library.is_file()
         );
 
@@ -183,7 +189,7 @@ impl Bottles {
     }
 
     /// Parse data from a given `bottle.yml` file
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(level = "trace")]
     fn get_parsable_bottle_yml_data(
         &self,
         path_bottle_yml: PathBuf,
@@ -214,7 +220,7 @@ impl Bottles {
     }
 
     /// Parse data from all `bottle.yml` files
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(level = "trace")]
     fn parse_all_bottles(&self) -> Result<Arc<[ParsableBottleYmlData]>, io::Error> {
         Ok(read_dir(&self.path_bottles_dir)
             .map_err(|e| {
@@ -228,7 +234,7 @@ impl Bottles {
     }
 
     /// Parse data from the Bottle's `library.yml` file
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(level = "trace")]
     fn parse_bottles_library(&self) -> Result<Vec<ParsableLibraryData>, io::Error> {
         let library_file_content = read_to_string(&self.path_bottles_library).map_err(|e| {
             error!(
@@ -282,15 +288,15 @@ impl Launcher for Bottles {
     }
 
     fn get_launcher_type(&self) -> SupportedLaunchers {
-        SupportedLaunchers::Bottles
+        LAUNCHER
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(level = "trace")]
     fn get_detected_games(&self) -> GamesResult {
         let parsed_data = self.parse_game_data()?;
 
         if parsed_data.is_empty() {
-            warn!("No games found for Bottles launcher");
+            warn!("{LAUNCHER} - No games found");
         }
 
         Ok(parsed_data
@@ -316,7 +322,7 @@ impl Launcher for Bottles {
                             get_launch_command("bottles-cli", base_args, [])
                         }
                     };
-                    trace!("Bottles - launch command for '{title}': {launch_command:?}");
+                    trace!("{LAUNCHER} - launch command for '{title}': {launch_command:?}");
 
                     let path_box_art = box_art.clone().and_then(|s| {
                         let path = self
@@ -327,8 +333,8 @@ impl Launcher for Bottles {
 
                     let path_game_dir = some_if_dir(PathBuf::from(game_dir));
 
-                    trace!("Bottles - Game directory found for '{title}': {path_game_dir:?}");
-                    trace!("Bottles - Box art found for '{title}': {path_box_art:?}");
+                    trace!("{LAUNCHER} - Game directory found for '{title}': {path_game_dir:?}");
+                    trace!("{LAUNCHER} - Box art found for '{title}': {path_box_art:?}");
 
                     Game {
                         title: clean_game_title(title),

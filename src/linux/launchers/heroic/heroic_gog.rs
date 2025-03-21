@@ -21,12 +21,14 @@ struct ParsableGOGInstalledData {
     title: String,
 }
 
+const LAUNCHER: SupportedLaunchers = SupportedLaunchers::HeroicGamesGOG;
+
 /// Utility function which parses a single game from the Heroic Games GOG store `installed.json` file
 ///
 /// Unfortunately a separate parser function is needed for GOG's `gog_store/installed.json` file because:
 /// 1. `store_cache/gog_library.json` has `is_installed` as always false
 /// 2. `gog_store/library.json` is empty for some reason
-#[tracing::instrument(skip_all)]
+#[tracing::instrument(level = "trace", skip(file_content))]
 fn parse_game_from_gog_installed(file_content: &str) -> IResult<&str, ParsableGOGInstalledData> {
     // INSTALL_PATH
     let (file_content, install_path) = parse_value_json(file_content, "install_path")?;
@@ -66,7 +68,7 @@ impl HeroicGOG {
         let path_icons = path_heroic_config.join("icons");
 
         debug!(
-            "Heroic GOG installed games json file exists: {}",
+            "{LAUNCHER} - installed games json file exists: {}",
             path_gog_installed_games.exists()
         );
 
@@ -119,10 +121,10 @@ impl Launcher for HeroicGOG {
     }
 
     fn get_launcher_type(&self) -> crate::data::SupportedLaunchers {
-        SupportedLaunchers::HeroicGOG
+        LAUNCHER
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(level = "trace")]
     fn get_detected_games(&self) -> GamesResult {
         let parsed_data = self.parse_gog_installed().map_err(|e| {
             error!("Error parsing the Heroic Games Legendary library file: {e}");
@@ -140,15 +142,13 @@ impl Launcher for HeroicGOG {
 
                 let launch_command =
                     get_launch_command_for_heroic_source("gog", &app_id, self.is_using_flatpak);
-                trace!("Heroic (GOG) - launch command for '{title}': {launch_command:?}");
+                trace!("{LAUNCHER} - launch command for '{title}': {launch_command:?}");
 
                 let path_game_dir = some_if_dir(PathBuf::from(install_path));
                 let path_box_art = some_if_file(self.path_icons.join(format!("{app_id}.png")));
 
-                trace!(
-                    "Heroic Launcher (GOG) - Game directory found for '{title}': {path_game_dir:?}"
-                );
-                trace!("Heroic Launcher (GOG) - Box art found for '{title}': {path_box_art:?}");
+                trace!("{LAUNCHER} - Game directory found for '{title}': {path_game_dir:?}");
+                trace!("{LAUNCHER} - Box art found for '{title}': {path_box_art:?}");
 
                 Game {
                     title,

@@ -14,6 +14,8 @@ use crate::{
     utils::{some_if_dir, some_if_file},
 };
 
+const LAUNCHER: SupportedLaunchers = SupportedLaunchers::HeroicGamesAmazon;
+
 #[derive(Debug)]
 pub struct HeroicAmazon {
     path_nile_library: PathBuf,
@@ -29,7 +31,7 @@ impl HeroicAmazon {
         let path_icons = path_heroic_config.join("icons");
 
         debug!(
-            "Heroic Launcher's nile_library json file exists: {}",
+            "{LAUNCHER} - nile_library json file exists: {}",
             path_nile_library.exists()
         );
 
@@ -44,14 +46,14 @@ impl HeroicAmazon {
     #[tracing::instrument]
     fn parse_nile_library(&self) -> Result<Vec<ParsableLibraryData>, io::Error> {
         trace!(
-            "Parsing Heroic Launcher Nile library file at {:?}",
+            "{LAUNCHER} - Parsing Nile library file at {:?}",
             self.path_nile_library
         );
 
         parse_all_games_from_library(&self.path_nile_library).inspect(|data| {
             if data.is_empty() {
                 warn!(
-                    "No games were parsed from the Nile library file at {:?}",
+                    "{LAUNCHER} - No games were parsed from the Nile library file at {:?}",
                     self.path_nile_library
                 )
             };
@@ -65,13 +67,13 @@ impl Launcher for HeroicAmazon {
     }
 
     fn get_launcher_type(&self) -> crate::data::SupportedLaunchers {
-        SupportedLaunchers::HeroicGamesAmazon
+        LAUNCHER
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(level = "trace")]
     fn get_detected_games(&self) -> GamesResult {
         let parsed_data = self.parse_nile_library().map_err(|e| {
-            error!("Error parsing the Heroic Games Nile library file: {e}");
+            error!("{LAUNCHER} - Error parsing the Nile library file: {e}");
             e
         })?;
 
@@ -79,19 +81,20 @@ impl Launcher for HeroicAmazon {
             .into_iter()
             .map(|parsed_data| {
                 let ParsableLibraryData {
-                app_id,
-                install_path,
-                title,
-            } = parsed_data;
+                    app_id,
+                    install_path,
+                    title,
+                } = parsed_data;
 
-                let launch_command = get_launch_command_for_heroic_source("nile", &app_id, self.is_using_flatpak);
-                trace!("Heroic (Amazon) - launch command for '{title}': {launch_command:?}");
+                let launch_command =
+                    get_launch_command_for_heroic_source("nile", &app_id, self.is_using_flatpak);
+                trace!("{LAUNCHER} - launch command for '{title}': {launch_command:?}");
 
                 let path_game_dir = some_if_dir(PathBuf::from(install_path));
                 let path_box_art = some_if_file(self.path_icons.join(format!("{app_id}.jpg")));
 
-                trace!("Heroic Launcher (Amazon) - Game directory found for '{title}': {path_game_dir:?}");
-                trace!("Heroic Launcher (Amazon) - Box art found for '{title}': {path_box_art:?}");
+                trace!("{LAUNCHER} - Game directory found for '{title}': {path_game_dir:?}");
+                trace!("{LAUNCHER} - Box art found for '{title}': {path_box_art:?}");
 
                 Game {
                     title,
@@ -100,8 +103,7 @@ impl Launcher for HeroicAmazon {
                     path_game_dir,
                 }
             })
-            .collect()
-        )
+            .collect())
     }
 }
 

@@ -14,6 +14,8 @@ use crate::{
     utils::{get_launch_command, get_launch_command_flatpak, some_if_dir},
 };
 
+const LAUNCHER: SupportedLaunchers = SupportedLaunchers::MinecraftPrism;
+
 struct ParsableConfigData {
     path_instances: PathBuf,
 }
@@ -31,7 +33,7 @@ impl MinecraftPrism {
         let mut path_root = path_data.join("PrismLauncher");
 
         if !path_root.is_dir() {
-            trace!("Minecraft (Prism) - Attempting to fall back to flatpak directory");
+            trace!("{LAUNCHER} - Attempting to fall back to flatpak directory");
             is_using_flatpak = true;
             path_root =
                 path_home.join(".var/app/org.prismlauncher.PrismLauncher/data/PrismLauncher");
@@ -46,7 +48,7 @@ impl MinecraftPrism {
         }
     }
 
-    #[tracing::instrument(skip_all)]
+    #[tracing::instrument(level = "trace", skip(file_content))]
     fn parse_prism_config<'a>(
         &self,
         file_content: &'a str,
@@ -74,7 +76,7 @@ impl Launcher for MinecraftPrism {
         SupportedLaunchers::MinecraftPrism
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(level = "trace")]
     fn get_detected_games(&self) -> GamesResult {
         let file_content = read_to_string(&self.path_config)?;
 
@@ -88,7 +90,7 @@ impl Launcher for MinecraftPrism {
 
         if !path_instances.is_dir() {
             error!(
-                "Minecraft (Prism) - the parsed instances dir does not exist: {:?}",
+                "{LAUNCHER} - the parsed instances dir does not exist: {:?}",
                 path_instances
             );
         }
@@ -112,14 +114,14 @@ impl Launcher for MinecraftPrism {
                         get_launch_command("prismlauncher", args, [])
                     }
                 };
-                trace!("Minecraft (Prism) - launch command for '{title}': {launch_command:?}");
+                trace!("{LAUNCHER} - launch command for '{title}': {launch_command:?}");
 
                 let path_game_dir = some_if_dir(path_instances.join(&title));
                 // No box art provided
                 let path_box_art = None;
 
-                trace!("Minecraft (Prism) - Game directory found for '{title}': {path_game_dir:?}");
-                trace!("Minecraft (Prism) - Box art found for '{title}': {path_box_art:?}");
+                trace!("{LAUNCHER} - Game directory found for '{title}': {path_game_dir:?}");
+                trace!("{LAUNCHER} - Box art found for '{title}': {path_box_art:?}");
 
                 Game {
                     title: get_minecraft_title(&title),

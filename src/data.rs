@@ -1,5 +1,5 @@
 use std::{
-    fmt::{self, Debug, Formatter},
+    fmt::{self, Debug, Display, Formatter},
     io,
     path::PathBuf,
     process::Command,
@@ -36,13 +36,14 @@ pub enum SupportedLaunchers {
     Steam,
     SteamShortcuts,
     HeroicGamesAmazon,
-    HeroicGamesEpicGames,
-    HeroicGOG,
+    HeroicGamesEpic,
+    HeroicGamesGOG,
     Lutris,
     Bottles,
     MinecraftPrism,
     MinecraftAT,
 }
+
 impl Debug for SupportedLaunchers {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(
@@ -50,18 +51,23 @@ impl Debug for SupportedLaunchers {
             "{}",
             match self {
                 SupportedLaunchers::Steam => "Steam",
-                SupportedLaunchers::SteamShortcuts => "Steam Shortcuts",
+                SupportedLaunchers::SteamShortcuts => "Steam (shortcuts)",
                 SupportedLaunchers::HeroicGamesAmazon =>
-                    "Heroic Games Launcher - Amazon Prime Gaming",
-                SupportedLaunchers::HeroicGamesEpicGames =>
-                    "Heroic Games Launcher - Epic Games Store",
-                SupportedLaunchers::HeroicGOG => "Heroic Games Launcher - GOG",
+                    "Heroic Games Launcher (Amazon Prime Gaming)",
+                SupportedLaunchers::HeroicGamesEpic => "Heroic Games Launcher (Epic Games Store)",
+                SupportedLaunchers::HeroicGamesGOG => "Heroic Games Launcher (GOG)",
                 SupportedLaunchers::Lutris => "Lutris",
                 SupportedLaunchers::Bottles => "Bottles",
-                SupportedLaunchers::MinecraftPrism => "Minecraft - PrismLauncher",
-                SupportedLaunchers::MinecraftAT => "Minecraft - ATLauncher",
+                SupportedLaunchers::MinecraftPrism => "Minecraft (PrismLauncher)",
+                SupportedLaunchers::MinecraftAT => "Minecraft (ATLauncher)",
             }
         )
+    }
+}
+
+impl Display for SupportedLaunchers {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
     }
 }
 

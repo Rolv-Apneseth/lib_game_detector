@@ -61,6 +61,7 @@ impl GamesDetector for GamesDetectorLinux {
     fn get_all_detected_games(&self) -> Vec<Game> {
         self.get_detected_launchers()
             .iter()
+            .filter(|l| l.is_detected())
             .filter_map(|l| l.get_detected_games().ok())
             .fold(vec![], |mut acc, g| {
                 acc.extend(g);

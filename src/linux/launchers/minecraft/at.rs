@@ -4,7 +4,7 @@ use std::{
 };
 
 use nom::IResult;
-use tracing::{debug, error, trace};
+use tracing::{debug, error, trace, warn};
 
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
@@ -65,7 +65,7 @@ impl Launcher for MinecraftAT {
 
     #[tracing::instrument(level = "trace")]
     fn get_detected_games(&self) -> GamesResult {
-        Ok(read_dir(&self.path_instances)?
+        let games: Vec<Game> = read_dir(&self.path_instances)?
             .flatten()
             .filter_map(|dir_entry| {
                 let config_path = dir_entry.path().join("instance.json");
@@ -108,7 +108,13 @@ impl Launcher for MinecraftAT {
                     path_game_dir,
                 }
             })
-            .collect())
+            .collect();
+
+        if games.is_empty() {
+            warn!("{LAUNCHER} - No games found");
+        };
+
+        Ok(games)
     }
 }
 

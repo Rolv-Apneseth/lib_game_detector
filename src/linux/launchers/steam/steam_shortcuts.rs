@@ -208,7 +208,7 @@ impl SteamShortcuts {
         };
 
         debug!(
-            "{LAUNCHER} - userdata dir path exists: {}",
+            "{LAUNCHER} - userdata dir path exists at {path_steam_userdata_dir:?}: {}",
             path_steam_userdata_dir.is_dir()
         );
 
@@ -280,7 +280,7 @@ impl Launcher for SteamShortcuts {
             .unwrap_or_default();
 
         if shortcut_data.is_empty() {
-            warn!("{LAUNCHER} - No valid shortcuts found");
+            warn!("{LAUNCHER} - No games found");
         }
 
         Ok(shortcut_data

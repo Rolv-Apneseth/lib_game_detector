@@ -5,7 +5,7 @@ use std::{
 
 use anyhow::anyhow;
 use nom::IResult;
-use tracing::{error, trace};
+use tracing::{error, trace, warn};
 
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
@@ -95,7 +95,7 @@ impl Launcher for MinecraftPrism {
             );
         }
 
-        Ok(read_dir(&path_instances)?
+        let games: Vec<Game> = read_dir(&path_instances)?
             .flatten()
             .filter_map(|dir_entry| {
                 let path = dir_entry.path();
@@ -130,7 +130,13 @@ impl Launcher for MinecraftPrism {
                     path_game_dir,
                 }
             })
-            .collect())
+            .collect();
+
+        if games.is_empty() {
+            warn!("{LAUNCHER} - No games found");
+        };
+
+        Ok(games)
     }
 }
 

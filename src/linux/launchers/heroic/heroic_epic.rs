@@ -77,6 +77,10 @@ impl Launcher for HeroicEpic {
             e
         })?;
 
+        if parsed_data.is_empty() {
+            warn!("{LAUNCHER} - No games found");
+        };
+
         Ok(parsed_data
             .into_iter()
             .map(|parsed_data| {

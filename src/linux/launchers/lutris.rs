@@ -221,7 +221,7 @@ impl Lutris {
             fallback_path_games_dir.is_dir()
         );
         debug!(
-            "{LAUNCHER} - `game-paths.json` file exists at {path_game_paths_json:?}: {}",
+            "{LAUNCHER} - game paths file exists at {path_game_paths_json:?}: {}",
             path_game_paths_json.is_file()
         );
 

@@ -3,7 +3,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::anyhow;
 use nom::IResult;
 use tracing::{error, trace, warn};
 
@@ -80,12 +79,7 @@ impl Launcher for MinecraftPrism {
     fn get_detected_games(&self) -> GamesResult {
         let file_content = read_to_string(&self.path_config)?;
 
-        let (_, config_data) = self.parse_prism_config(&file_content).map_err(|_| {
-            anyhow!(
-                "Couldn't parse Prism launcher config at {:?}",
-                self.path_config
-            )
-        })?;
+        let (_, config_data) = self.parse_prism_config(&file_content)?;
         let ParsableConfigData { path_instances } = config_data;
 
         if !path_instances.is_dir() {
@@ -145,14 +139,14 @@ mod tests {
     use test_case::test_case;
 
     use super::*;
-    use crate::linux::test_utils::get_mock_file_system_path;
+    use crate::{data::GamesParsingError, linux::test_utils::get_mock_file_system_path};
 
     #[test_case(false, ".local/share"; "standard")]
     #[test_case(true, "invalid/data/path"; "flatpak")]
     fn test_minecraft_prism_launcher(
         is_testing_flatpak: bool,
         path_data: &str,
-    ) -> Result<(), anyhow::Error> {
+    ) -> Result<(), GamesParsingError> {
         let path_file_system_mock = get_mock_file_system_path();
         let launcher = MinecraftPrism::new(
             &path_file_system_mock,

@@ -424,7 +424,7 @@ mod tests {
     use test_case::test_case;
 
     use super::*;
-    use crate::linux::test_utils::get_mock_file_system_path;
+    use crate::{data::GamesParsingError, linux::test_utils::get_mock_file_system_path};
 
     #[test_case(false, ".config", ".cache"; "standard")]
     #[test_case(false, "invalid/path", ".cache"; "fallback")]
@@ -433,7 +433,7 @@ mod tests {
         is_testing_flatpak: bool,
         path_config: &str,
         path_cache: &str,
-    ) -> anyhow::Result<()> {
+    ) -> Result<(), GamesParsingError> {
         let path_file_system_mock = get_mock_file_system_path();
         let launcher = Lutris::new(
             &path_file_system_mock,

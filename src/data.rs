@@ -20,11 +20,20 @@ pub struct Game {
 /// Custom error type to be used in the custom `Games` Result type
 #[derive(Error, Debug)]
 pub enum GamesParsingError {
-    #[error("IO error")]
+    #[error(transparent)]
     Io(#[from] io::Error),
 
     #[error(transparent)]
-    Other(#[from] anyhow::Error),
+    Nom(#[from] nom::Err<nom::error::Error<String>>),
+
+    #[error("Other error: {0}")]
+    Other(String),
+}
+
+impl From<nom::Err<nom::error::Error<&str>>> for GamesParsingError {
+    fn from(err: nom::Err<nom::error::Error<&str>>) -> Self {
+        Self::Nom(err.map_input(|input| input.into()))
+    }
 }
 
 /// Custom Result type for Games

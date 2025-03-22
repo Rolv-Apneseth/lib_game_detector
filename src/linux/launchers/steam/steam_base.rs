@@ -317,7 +317,7 @@ mod tests {
         // Library paths in `libraryfolders.vdf` mock are invalid library paths
         assert!(games_result.is_err());
         if let Err(e) = games_result {
-            assert!(matches!(e, GamesParsingError::Other(_)));
+            assert!(matches!(e, GamesParsingError::Io(_)));
 
             if let GamesParsingError::Other(anyhow_error) = e {
                 assert_eq!(anyhow_error.to_string(), "No valid libraries detected.")
@@ -326,7 +326,7 @@ mod tests {
     }
 
     #[test]
-    fn test_steam_libraries() -> Result<(), anyhow::Error> {
+    fn test_steam_libraries() -> Result<(), GamesParsingError> {
         let path_file_system_mock = get_mock_file_system_path();
         let path_steam_dir = &path_file_system_mock.join(".local/share/Steam");
         let path_libs_dir = &path_file_system_mock.join("steam_libraries");

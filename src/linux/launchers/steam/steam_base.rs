@@ -5,7 +5,6 @@ use std::{
     sync::Arc,
 };
 
-use anyhow::anyhow;
 use nom::{
     bytes::complete::{tag, take_till},
     character::is_alphanumeric,
@@ -17,7 +16,7 @@ use walkdir::WalkDir;
 
 use super::{get_steam_dir, get_steam_flatpak_dir, get_steam_launch_command};
 use crate::{
-    data::{Game, GamesParsingError, GamesResult, Launcher, SupportedLaunchers},
+    data::{Game, GamesResult, Launcher, SupportedLaunchers},
     parsers::parse_value_json,
     utils::{clean_game_title, some_if_dir, some_if_file},
 };
@@ -219,7 +218,7 @@ impl Steam {
         };
 
         debug!(
-            "{LAUNCHER} - Steam dir path exists: {}",
+            "{LAUNCHER} - Steam dir path exists at {path_steam_dir:?}: {}",
             path_steam_dir.is_dir()
         );
 
@@ -268,34 +267,26 @@ impl Launcher for Steam {
             e
         })?;
 
-        let mut games = libraries
-            .iter()
-            .filter_map(|library| {
-                library
-                    .get_all_games()
-                    .map_err(|e| { error!(
-                        "{LAUNCHER} - Error with parsing games from a Steam library.\nLibrary: {library:?}\nError:
-                        {e:?}"
-                    )})
-                    .ok()
-            }).peekable();
+        debug!("{LAUNCHER} - libraries detected: {:?}", libraries);
 
-        if games.peek().is_none() {
-            return Err(GamesParsingError::Other(anyhow!(
-                "No valid libraries detected."
-            )));
-        };
+        let games = libraries
+            .into_iter()
+            .map(|l| {
+                let games = l.get_all_games();
+                trace!(
+                    "{LAUNCHER} - games for library at {:?}: {:?}",
+                    l.path_library,
+                    games
+                );
+                games
+            })
+            .collect::<Result<Vec<Vec<Game>>, io::Error>>()?;
 
-        games
-            .reduce(|mut acc, e| {
-                acc.extend(e.into_iter());
-                acc
-            })
-            .ok_or_else(|| {
-                GamesParsingError::Other(anyhow!(
-                    "Failed to combine slices from Steam Libraries into a single slice"
-                ))
-            })
+        if games.is_empty() {
+            error!("{LAUNCHER} - No valid libraries");
+        }
+
+        Ok(games.into_iter().flatten().collect())
     }
 }
 
@@ -304,7 +295,7 @@ mod tests {
     use test_case::test_case;
 
     use super::*;
-    use crate::linux::test_utils::get_mock_file_system_path;
+    use crate::{data::GamesParsingError, linux::test_utils::get_mock_file_system_path};
 
     #[test_case(false, ".local/share"; "standard")]
     #[test_case(true, "invalid/data/path"; "flatpak")]

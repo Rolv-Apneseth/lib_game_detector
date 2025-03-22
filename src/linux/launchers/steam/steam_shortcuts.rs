@@ -4,7 +4,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::anyhow;
 use nom::{
     bytes::complete::{take_till, take_until},
     character::complete::char,
@@ -125,8 +124,7 @@ fn get_parsable_shortcuts_data(
     path_shortcuts: &Path,
 ) -> Result<Vec<ParsableShortcutData>, GamesParsingError> {
     let content = read(path_shortcuts)?;
-    let shortcuts =
-        parse_shortcuts(content.as_slice()).map_err(|e| GamesParsingError::Other(anyhow!(e)))?;
+    let shortcuts = parse_shortcuts(content.as_slice()).map_err(GamesParsingError::Other)?;
 
     Ok(shortcuts
         .into_iter()
@@ -143,13 +141,7 @@ fn get_parsable_screenshots_data(
 ) -> Result<Vec<ParsableScreenshotData>, GamesParsingError> {
     let file_content = &read_to_string(path_screenshots)?;
 
-    let (_, data) = parse_screenshots_vdf(file_content, path_screenshots).map_err(|e| {
-        GamesParsingError::Other(anyhow!(
-            "Could not parse data from screenshots file {path_screenshots:?}: {e}"
-        ))
-    })?;
-
-    Ok(data)
+    Ok(parse_screenshots_vdf(file_content, path_screenshots)?.1)
 }
 
 #[tracing::instrument(level = "trace", skip(file_content))]
@@ -322,7 +314,7 @@ mod tests {
     fn test_steam_shortcuts_launcher(
         is_testing_flatpak: bool,
         path_data: &str,
-    ) -> Result<(), anyhow::Error> {
+    ) -> Result<(), GamesParsingError> {
         let path_files_system_mock = get_mock_file_system_path();
         let launcher = SteamShortcuts::new(
             &path_files_system_mock,

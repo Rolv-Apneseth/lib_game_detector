@@ -353,14 +353,14 @@ mod tests {
     use test_case::test_case;
 
     use super::*;
-    use crate::linux::test_utils::get_mock_file_system_path;
+    use crate::{data::GamesParsingError, linux::test_utils::get_mock_file_system_path};
 
     #[test_case(false, ".local/share"; "standard")]
     #[test_case(true, "invalid/data/path"; "flatpak")]
     fn test_bottles_launcher(
         is_testing_flatpak: bool,
         path_data: &str,
-    ) -> Result<(), anyhow::Error> {
+    ) -> Result<(), GamesParsingError> {
         let path_file_system_mock = get_mock_file_system_path();
         let launcher = Bottles::new(
             &path_file_system_mock,

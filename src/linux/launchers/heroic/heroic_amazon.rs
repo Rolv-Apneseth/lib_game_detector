@@ -31,7 +31,7 @@ impl HeroicAmazon {
         let path_icons = path_heroic_config.join("icons");
 
         debug!(
-            "{LAUNCHER} - nile_library json file exists: {}",
+            "{LAUNCHER} - nile_library json file exists at {path_nile_library:?}: {}",
             path_nile_library.exists()
         );
 

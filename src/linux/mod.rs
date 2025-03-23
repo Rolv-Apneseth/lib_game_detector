@@ -1,11 +1,12 @@
 use std::sync::Arc;
 
 use dirs::{cache_dir, config_dir, data_dir, home_dir};
+use launchers::heroic::sideload::HeroicSideload;
 use tracing::error;
 
 use self::launchers::{
     bottles::Bottles,
-    heroic::{heroic_amazon::HeroicAmazon, heroic_epic::HeroicEpic, heroic_gog::HeroicGOG},
+    heroic::{amazon::HeroicAmazon, epic::HeroicEpic, gog::HeroicGOG},
     lutris::Lutris,
     minecraft::{at::MinecraftAT, prism::MinecraftPrism},
     steam::{Steam, SteamShortcuts},
@@ -36,6 +37,7 @@ impl GamesDetectorLinux {
             Arc::new(HeroicGOG::new(&path_home, &path_config)),
             Arc::new(HeroicEpic::new(&path_home, &path_config)),
             Arc::new(HeroicAmazon::new(&path_home, &path_config)),
+            Arc::new(HeroicSideload::new(&path_home, &path_config)),
             Arc::new(Lutris::new(
                 &path_home,
                 &path_config,

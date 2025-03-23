@@ -1,6 +1,6 @@
-pub mod heroic_amazon;
-pub mod heroic_epic;
-pub mod heroic_gog;
+pub mod amazon;
+pub mod epic;
+pub mod gog;
 
 use std::{
     fs::read_to_string,

@@ -42,14 +42,23 @@ pub type GamesResult = Result<Vec<Game>, GamesParsingError>;
 /// Data structure representing a supported games source
 #[derive(PartialEq, Eq)]
 pub enum SupportedLaunchers {
+    /// Regular Steam games
     Steam,
+    /// Non-Steam games added to Steam manually by the user
     SteamShortcuts,
-    HeroicGamesAmazon,
-    HeroicGamesEpic,
-    HeroicGamesGOG,
+    /// Lutris games
     Lutris,
+    /// Bottles games
     Bottles,
+    /// Heroic Games Launcher - Amazon Prime games
+    HeroicGamesAmazon,
+    /// Heroic Games Launcher - Epic Games Store games
+    HeroicGamesEpic,
+    /// Heroic Games Launcher - GOG games
+    HeroicGamesGOG,
+    /// Minecraft instances managed by Prism
     MinecraftPrism,
+    /// Minecraft instances managed by ATLauncher
     MinecraftAT,
 }
 

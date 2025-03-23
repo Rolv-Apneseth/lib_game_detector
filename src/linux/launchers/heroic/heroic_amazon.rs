@@ -3,15 +3,17 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use tracing::{debug, error, trace, warn};
+use tracing::{error, trace, warn};
 
 use super::ParsableLibraryData;
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
+    debug_path,
     linux::launchers::heroic::{
         get_heroic_config_path, get_launch_command_for_heroic_source, parse_all_games_from_library,
     },
     utils::{some_if_dir, some_if_file},
+    warn_no_games,
 };
 
 const LAUNCHER: SupportedLaunchers = SupportedLaunchers::HeroicGamesAmazon;
@@ -30,10 +32,7 @@ impl HeroicAmazon {
         let path_nile_library = path_heroic_config.join("store_cache/nile_library.json");
         let path_icons = path_heroic_config.join("icons");
 
-        debug!(
-            "{LAUNCHER} - nile_library json file exists at {path_nile_library:?}: {}",
-            path_nile_library.exists()
-        );
+        debug_path!("Nile library JSON file", path_nile_library);
 
         HeroicAmazon {
             path_nile_library,
@@ -72,13 +71,12 @@ impl Launcher for HeroicAmazon {
 
     #[tracing::instrument(level = "trace")]
     fn get_detected_games(&self) -> GamesResult {
-        let parsed_data = self.parse_nile_library().map_err(|e| {
-            error!("{LAUNCHER} - Error parsing the Nile library file: {e}");
-            e
-        })?;
+        let parsed_data = self
+            .parse_nile_library()
+            .inspect_err(|e| error!("{LAUNCHER} - Error parsing the Nile library file: {e}"))?;
 
         if parsed_data.is_empty() {
-            warn!("{LAUNCHER} - No games found");
+            warn_no_games!();
         };
 
         Ok(parsed_data

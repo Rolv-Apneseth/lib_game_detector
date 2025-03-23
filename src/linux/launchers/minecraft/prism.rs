@@ -8,9 +8,11 @@ use tracing::{error, trace, warn};
 
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
+    debug_fallback_flatpak, debug_path,
     linux::launchers::minecraft::get_minecraft_title,
     parsers::{parse_until_key_cfg, parse_value_cfg},
     utils::{get_launch_command, get_launch_command_flatpak, some_if_dir},
+    warn_no_games,
 };
 
 const LAUNCHER: SupportedLaunchers = SupportedLaunchers::MinecraftPrism;
@@ -32,13 +34,16 @@ impl MinecraftPrism {
         let mut path_root = path_data.join("PrismLauncher");
 
         if !path_root.is_dir() {
-            trace!("{LAUNCHER} - Attempting to fall back to flatpak directory");
+            debug_fallback_flatpak!();
+
             is_using_flatpak = true;
             path_root =
                 path_home.join(".var/app/org.prismlauncher.PrismLauncher/data/PrismLauncher");
         }
 
         let path_config = path_root.join("prismlauncher.cfg");
+
+        debug_path!("root directory", path_root);
 
         Self {
             path_root,
@@ -127,7 +132,7 @@ impl Launcher for MinecraftPrism {
             .collect();
 
         if games.is_empty() {
-            warn!("{LAUNCHER} - No games found");
+            warn_no_games!();
         };
 
         Ok(games)

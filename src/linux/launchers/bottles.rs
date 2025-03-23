@@ -11,16 +11,18 @@ use nom::{
     sequence::preceded,
     IResult,
 };
-use tracing::{debug, error, trace, warn};
+use tracing::{error, trace, warn};
 
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
+    debug_fallback_flatpak, debug_path,
     parsers::{
         parse_not_alphanumeric, parse_till_end_of_line, parse_until_key_yml, parse_value_yml,
     },
     utils::{
         clean_game_title, get_launch_command, get_launch_command_flatpak, some_if_dir, some_if_file,
     },
+    warn_no_games,
 };
 
 #[derive(Debug, Clone)]
@@ -158,7 +160,7 @@ impl Bottles {
         let mut is_using_flatpak = false;
 
         if !path_bottles_data.is_dir() {
-            debug!("{LAUNCHER} - Attempting to fall back to flatpak directory");
+            debug_fallback_flatpak!();
 
             is_using_flatpak = true;
             path_bottles_data = path_home.join(".var/app/com.usebottles.bottles/data/bottles");
@@ -167,18 +169,9 @@ impl Bottles {
         let path_bottles_dir = path_bottles_data.join("bottles");
         let path_bottles_library = path_bottles_data.join("library.yml");
 
-        debug!(
-            "{LAUNCHER} - data directory exists at {path_bottles_data:?}: {}",
-            path_bottles_data.is_dir()
-        );
-        debug!(
-            "{LAUNCHER} - bottles directory exists at {path_bottles_dir:?}: {}",
-            path_bottles_dir.is_dir()
-        );
-        debug!(
-            "{LAUNCHER} - library yaml file exists at {path_bottles_library:?}: {}",
-            path_bottles_library.is_file()
-        );
+        debug_path!("data directory", path_bottles_data);
+        debug_path!("bottles directory", path_bottles_dir);
+        debug_path!("library yaml file", path_bottles_library);
 
         Bottles {
             path_bottles_dir,
@@ -295,7 +288,7 @@ impl Launcher for Bottles {
         let parsed_data = self.parse_game_data()?;
 
         if parsed_data.is_empty() {
-            warn!("{LAUNCHER} - No games found");
+            warn_no_games!();
         }
 
         Ok(parsed_data

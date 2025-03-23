@@ -17,7 +17,7 @@ use crate::{
     utils::{clean_game_title, get_launch_command, get_launch_command_flatpak},
 };
 
-/// Useful data about a game which is parsable from a Heroic Games Launcher library file
+/// Useful data about a game which is parseable from a Heroic Games Launcher library file
 #[derive(Debug)]
 struct ParsableLibraryData {
     app_id: String,
@@ -88,9 +88,9 @@ fn get_heroic_config_path(path_home: &Path, path_config: &Path) -> (PathBuf, boo
     let mut path_heroic_config = path_config.join("heroic");
 
     if !path_heroic_config.is_dir() {
-        debug!("Heroic - Attempting to fall back to flatpak directory");
-        is_using_flatpak = true;
+        debug!("Heroic - Attempting to fall back to flatpak");
 
+        is_using_flatpak = true;
         path_heroic_config = path_home.join(".var/app/com.heroicgameslauncher.hgl/config/heroic");
     }
 

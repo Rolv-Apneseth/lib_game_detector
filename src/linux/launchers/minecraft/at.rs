@@ -4,13 +4,15 @@ use std::{
 };
 
 use nom::IResult;
-use tracing::{debug, error, trace, warn};
+use tracing::{error, trace, warn};
 
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
+    debug_fallback_flatpak, debug_path,
     linux::launchers::minecraft::get_minecraft_title,
     parsers::parse_value_json,
     utils::{get_launch_command, get_launch_command_flatpak, some_if_dir},
+    warn_no_games,
 };
 
 struct ParsableInstanceConfigData {
@@ -40,12 +42,15 @@ impl MinecraftAT {
         let mut path_root = path_data.join("atlauncher");
 
         if !path_root.is_dir() {
-            debug!("{LAUNCHER} - Attempting to fall back to flatpak directory");
+            debug_fallback_flatpak!();
+
             is_using_flatpak = true;
             path_root = path_home.join(".var/app/com.atlauncher.ATLauncher/data");
         }
 
         let path_instances = path_root.join("instances");
+
+        debug_path!("root directory", path_root);
 
         Self {
             path_instances,
@@ -111,7 +116,7 @@ impl Launcher for MinecraftAT {
             .collect();
 
         if games.is_empty() {
-            warn!("{LAUNCHER} - No games found");
+            warn_no_games!();
         };
 
         Ok(games)

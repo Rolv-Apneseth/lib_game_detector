@@ -3,15 +3,17 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use tracing::{debug, error, trace, warn};
+use tracing::{error, trace, warn};
 
 use super::ParsableLibraryData;
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
+    debug_path,
     linux::launchers::heroic::{
         get_heroic_config_path, get_launch_command_for_heroic_source, parse_all_games_from_library,
     },
     utils::{some_if_dir, some_if_file},
+    warn_no_games,
 };
 
 const LAUNCHER: SupportedLaunchers = SupportedLaunchers::HeroicGamesEpic;
@@ -30,10 +32,7 @@ impl HeroicEpic {
         let path_legendary_library = path_heroic_config.join("store_cache/legendary_library.json");
         let path_icons = path_heroic_config.join("icons");
 
-        debug!(
-            "{LAUNCHER} - Legendary library json file exists at {path_legendary_library:?}: {}",
-            path_legendary_library.exists()
-        );
+        debug_path!("Legendary library JSON file", path_legendary_library);
 
         HeroicEpic {
             path_legendary_library,
@@ -78,7 +77,7 @@ impl Launcher for HeroicEpic {
         })?;
 
         if parsed_data.is_empty() {
-            warn!("{LAUNCHER} - No games found");
+            warn_no_games!();
         };
 
         Ok(parsed_data

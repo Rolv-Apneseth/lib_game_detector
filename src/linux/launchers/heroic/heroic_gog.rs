@@ -5,13 +5,15 @@ use std::{
 };
 
 use nom::IResult;
-use tracing::{debug, error, trace, warn};
+use tracing::{error, trace, warn};
 
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
+    debug_path,
     linux::launchers::heroic::{get_heroic_config_path, get_launch_command_for_heroic_source},
     parsers::parse_value_json,
     utils::{clean_game_title, some_if_dir, some_if_file},
+    warn_no_games,
 };
 
 #[derive(Debug)]
@@ -67,10 +69,7 @@ impl HeroicGOG {
         let path_gog_installed_games = path_heroic_config.join("gog_store/installed.json");
         let path_icons = path_heroic_config.join("icons");
 
-        debug!(
-            "{LAUNCHER} - installed games json file exists at {path_gog_installed_games:?}: {}",
-            path_gog_installed_games.exists()
-        );
+        debug_path!("installed games JSON file", path_gog_installed_games);
 
         HeroicGOG {
             path_gog_installed_games,
@@ -106,7 +105,7 @@ impl HeroicGOG {
 
         if parsed_data.is_empty() {
             warn!(
-                "No games were parsed from the GOG installed games file at {:?}",
+                "{LAUNCHER} - No games were parsed from the GOG installed games file at {:?}",
                 self.path_gog_installed_games
             )
         };
@@ -132,7 +131,7 @@ impl Launcher for HeroicGOG {
         })?;
 
         if parsed_data.is_empty() {
-            warn!("{LAUNCHER} - No games found");
+            warn_no_games!();
         };
 
         Ok(parsed_data

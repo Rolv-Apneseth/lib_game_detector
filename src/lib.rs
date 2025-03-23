@@ -41,7 +41,7 @@
 //!
 //! - Steam
 //!   - Non-Steam games added as shortcuts are also supported. Make sure to restart Steam at least once for new shortcuts to be detected
-//! - Heroic Games Launcher (Legendary, Nile and GOG)
+//! - Heroic Games Launcher (Legendary, Nile, GOG, and manually added games)
 //! - Lutris
 //! - Bottles
 //!   - Only lists entries included in the Library

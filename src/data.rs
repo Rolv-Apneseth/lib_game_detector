@@ -56,6 +56,8 @@ pub enum SupportedLaunchers {
     HeroicGamesEpic,
     /// Heroic Games Launcher - GOG games
     HeroicGamesGOG,
+    /// Heroic Games Launcher - games added manually by the user
+    HeroicGamesSideload,
     /// Minecraft instances managed by Prism
     MinecraftPrism,
     /// Minecraft instances managed by ATLauncher
@@ -74,6 +76,7 @@ impl Debug for SupportedLaunchers {
                     "Heroic Games Launcher (Amazon Prime Gaming)",
                 SupportedLaunchers::HeroicGamesEpic => "Heroic Games Launcher (Epic Games Store)",
                 SupportedLaunchers::HeroicGamesGOG => "Heroic Games Launcher (GOG)",
+                SupportedLaunchers::HeroicGamesSideload => "Heroic Games Launcher (Sideload)",
                 SupportedLaunchers::Lutris => "Lutris",
                 SupportedLaunchers::Bottles => "Bottles",
                 SupportedLaunchers::MinecraftPrism => "Minecraft (PrismLauncher)",

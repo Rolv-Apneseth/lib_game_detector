@@ -1,0 +1,40 @@
+{
+	"games": [
+		{
+			"runner": "sideload",
+			"app_name": "6wMcNXN3yaVjBsu9gTaHNJ",
+			"title": "Resistance - Fall of Man",
+			"install": {
+				"executable": "/rpcs3.exe",
+				"platform": "Windows",
+				"is_dlc": false
+			},
+			"folder_name": "/",
+			"art_cover": "https://cdn2.steamgriddb.com/grid/a675cdaaaea6d970edf507f9716e5227.png",
+			"is_installed": true,
+			"art_square": "https://cdn2.steamgriddb.com/grid/a675cdaaaea6d970edf507f9716e5227.png",
+			"canRunOffline": true,
+			"browserUrl": "",
+			"customUserAgent": "",
+			"launchFullScreen": false
+		},
+		{
+			"runner": "sideload",
+			"app_name": "7Wyx5mVRMznq9NMsrvSfPi",
+			"title": "Little Big Planet 3",
+			"install": {
+				"executable": "/not_a_dir/LittleBigPlanet 3/rpcs3.exe",
+				"platform": "Windows",
+				"is_dlc": false
+			},
+			"folder_name": "/not_a_dir/LittleBigPlanet 3",
+			"art_cover": "https://cdn2.steamgriddb.com/grid/f36d015d428b570f21a7e947146729d5.png",
+			"is_installed": true,
+			"art_square": "https://cdn2.steamgriddb.com/grid/f36d015d428b570f21a7e947146729d5.png",
+			"canRunOffline": true,
+			"browserUrl": "",
+			"customUserAgent": "",
+			"launchFullScreen": false
+		}
+	]
+}

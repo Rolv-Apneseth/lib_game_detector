@@ -1,6 +1,7 @@
 pub mod amazon;
 pub mod epic;
 pub mod gog;
+pub mod sideload;
 
 use std::{
     fs::read_to_string,
@@ -32,6 +33,7 @@ fn parse_game_from_library(file_content: &str) -> IResult<&str, ParsableLibraryD
     let (file_content, app_id) = parse_value_json(file_content, "app_name")?;
 
     // Keep checkpoint of file content because `is_installed` comes after the `install_path`
+    // and `title` may come before install info
     let file_content_checkpoint = file_content;
 
     // IS_INSTALLED
@@ -43,10 +45,12 @@ fn parse_game_from_library(file_content: &str) -> IResult<&str, ParsableLibraryD
     }
 
     // INSTALL_PATH
-    let (file_content, install_path) = parse_value_json(file_content_checkpoint, "install_path")?;
+    let (_, install_path) = parse_value_json(file_content_checkpoint, "install_path")
+        // Fallback to the parent dir of the executable (if found)
+        .or_else(|_| parse_value_json(file_content_checkpoint, "folder_name"))?;
 
     // TITLE
-    let (file_content, title) = parse_value_json(file_content, "title")?;
+    let (file_content, title) = parse_value_json(file_content_checkpoint, "title")?;
 
     Ok((
         file_content,

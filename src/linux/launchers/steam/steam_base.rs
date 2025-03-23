@@ -17,6 +17,7 @@ use walkdir::WalkDir;
 use super::{get_steam_dir, get_steam_flatpak_dir, get_steam_launch_command};
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
+    debug_fallback_flatpak, debug_path,
     parsers::parse_value_json,
     utils::{clean_game_title, some_if_dir, some_if_file},
 };
@@ -211,16 +212,13 @@ impl Steam {
         let mut is_using_flatpak = false;
 
         if !path_steam_dir.is_dir() {
-            debug!("{LAUNCHER} - Attempting to fall back to flatpak directory");
+            debug_fallback_flatpak!();
 
             is_using_flatpak = true;
             path_steam_dir = get_steam_flatpak_dir(path_home);
         };
 
-        debug!(
-            "{LAUNCHER} - Steam dir path exists at {path_steam_dir:?}: {}",
-            path_steam_dir.is_dir()
-        );
+        debug_path!("main Steam directory", path_steam_dir);
 
         Steam {
             path_steam_dir,

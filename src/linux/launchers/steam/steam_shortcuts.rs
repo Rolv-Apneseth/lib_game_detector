@@ -11,13 +11,15 @@ use nom::{
     IResult,
 };
 use steam_shortcuts_util::parse_shortcuts;
-use tracing::{debug, error, trace, warn};
+use tracing::{error, trace, warn};
 
 use super::{get_steam_dir, get_steam_flatpak_dir, get_steam_launch_command};
 use crate::{
     data::{Game, GamesParsingError, GamesResult, Launcher, SupportedLaunchers},
+    debug_fallback_flatpak, debug_path,
     parsers::{parse_between_double_quotes, parse_not_double_quote},
     utils::{clean_game_title, get_existing_image_path},
+    warn_no_games,
 };
 
 /// Data parseable from a Steam user's `shortcuts.vdf`
@@ -193,16 +195,13 @@ impl SteamShortcuts {
         let mut is_using_flatpak = false;
 
         if !path_steam_userdata_dir.is_dir() {
-            debug!("{LAUNCHER} - Attempting to fall back to flatpak directory");
+            debug_fallback_flatpak!();
 
             is_using_flatpak = true;
             path_steam_userdata_dir = get_steam_flatpak_dir(path_home).join("userdata");
         };
 
-        debug!(
-            "{LAUNCHER} - userdata dir path exists at {path_steam_userdata_dir:?}: {}",
-            path_steam_userdata_dir.is_dir()
-        );
+        debug_path!("userdata dir path", path_steam_userdata_dir);
 
         Self {
             path_steam_userdata_dir,
@@ -272,7 +271,7 @@ impl Launcher for SteamShortcuts {
             .unwrap_or_default();
 
         if shortcut_data.is_empty() {
-            warn!("{LAUNCHER} - No games found");
+            warn_no_games!();
         }
 
         Ok(shortcut_data

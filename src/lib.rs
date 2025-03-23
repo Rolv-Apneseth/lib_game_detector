@@ -51,6 +51,7 @@
 use cfg_if::cfg_if;
 
 pub mod data;
+mod macros;
 mod parsers;
 mod utils;
 

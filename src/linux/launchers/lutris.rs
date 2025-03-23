@@ -11,11 +11,13 @@ use tracing::{debug, error, trace, warn};
 
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
+    debug_fallback_flatpak, debug_path,
     parsers::{parse_double_quoted_key_value, parse_until_key_yml, parse_value_yml},
     utils::{
         clean_game_title, get_existing_image_path, get_launch_command, get_launch_command_flatpak,
         some_if_dir,
     },
+    warn_no_games,
 };
 
 #[derive(Debug, Clone)]
@@ -185,7 +187,7 @@ impl Lutris {
         if !path_config_lutris.is_dir()
             && (!path_cache_lutris.is_dir() || !path_data_lutris.is_dir())
         {
-            debug!("{LAUNCHER} - Attempting to fall back to flatpak directory");
+            debug_fallback_flatpak!();
 
             is_using_flatpak = true;
             let path_flatpak = path_home.join(".var/app/net.lutris.Lutris");
@@ -210,18 +212,9 @@ impl Lutris {
             path_box_art_dir = path_data_lutris.join("coverart");
         }
 
-        debug!(
-            "{LAUNCHER} - games directory exists at {path_games_dir:?}: {}",
-            path_games_dir.is_dir()
-        );
-        debug!(
-            "{LAUNCHER} - box art directory exists at {path_box_art_dir:?}: {}",
-            path_box_art_dir.is_dir()
-        );
-        debug!(
-            "{LAUNCHER} - game paths file exists at {path_game_paths_json:?}: {}",
-            path_game_paths_json.is_file()
-        );
+        debug_path!("games directory", path_games_dir);
+        debug_path!("box art directory", path_box_art_dir);
+        debug_path!("game paths JSON file", path_game_paths_json);
 
         Lutris {
             path_games_dir,
@@ -341,7 +334,7 @@ impl Launcher for Lutris {
         let parsed_data = self.parse_game_data()?;
 
         if parsed_data.is_empty() {
-            warn!("{LAUNCHER} - No games found");
+            warn_no_games!();
         }
 
         Ok(parsed_data

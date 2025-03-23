@@ -170,10 +170,6 @@ pub struct Lutris {
     path_box_art_dir: PathBuf,
     path_game_paths_json: PathBuf,
     is_using_flatpak: bool,
-    // Fallbacks for games and cover art dirs as Lutris on some systems without `$XDG`
-    // env variables defined seems to put things in different places.
-    fallback_path_games_dir: PathBuf,
-    fallback_path_box_art_dir: PathBuf,
 }
 
 impl Lutris {
@@ -199,26 +195,28 @@ impl Lutris {
         }
 
         let path_game_paths_json = path_cache_lutris.join("game-paths.json");
-        let path_games_dir = path_config_lutris.join("games");
+        let mut path_games_dir = path_config_lutris.join("games");
 
-        let fallback_path_games_dir = path_data_lutris.join("games");
-        let fallback_path_box_art_dir = path_data_lutris.join("coverart");
+        // Fallbacks for games and cover art dirs as Lutris on some systems without `$XDG`
+        // env variables defined seems to put things in different places.
+        if !path_games_dir.is_dir() {
+            debug!("{LAUNCHER} - games directory not found at {path_games_dir:?}, using fallback");
+            path_games_dir = path_data_lutris.join("games");
+        }
+        if !path_box_art_dir.is_dir() {
+            debug!(
+                "{LAUNCHER} - box art directory not found at {path_box_art_dir:?}, using fallback"
+            );
+            path_box_art_dir = path_data_lutris.join("coverart");
+        }
 
         debug!(
             "{LAUNCHER} - games directory exists at {path_games_dir:?}: {}",
             path_games_dir.is_dir()
         );
         debug!(
-            "{LAUNCHER} - fallback games directory exists at {fallback_path_games_dir:?}: {}",
-            fallback_path_games_dir.is_dir()
-        );
-        debug!(
             "{LAUNCHER} - box art directory exists at {path_box_art_dir:?}: {}",
             path_box_art_dir.is_dir()
-        );
-        debug!(
-            "{LAUNCHER} - fallback box art directory exists at {fallback_path_box_art_dir:?}: {}",
-            fallback_path_games_dir.is_dir()
         );
         debug!(
             "{LAUNCHER} - game paths file exists at {path_game_paths_json:?}: {}",
@@ -228,28 +226,8 @@ impl Lutris {
         Lutris {
             path_games_dir,
             path_box_art_dir,
-            fallback_path_games_dir,
-            fallback_path_box_art_dir,
             path_game_paths_json,
             is_using_flatpak,
-        }
-    }
-
-    /// Get the path to the games directory, using the fallback if the primary path doesn't exist
-    fn path_games_dir_with_fallback(&self) -> &Path {
-        if self.path_games_dir.is_dir() {
-            &self.path_games_dir
-        } else {
-            &self.fallback_path_games_dir
-        }
-    }
-
-    /// Get the path to the cover art directory, using the fallback if the primary path doesn't exist
-    fn path_box_art_dir_with_fallback(&self) -> &Path {
-        if self.path_box_art_dir.is_dir() {
-            &self.path_box_art_dir
-        } else {
-            &self.fallback_path_box_art_dir
         }
     }
 
@@ -299,7 +277,7 @@ impl Lutris {
     /// Parse data from the Lutris games directory, which contains 1 `.yml` file for each game
     #[tracing::instrument(level = "trace")]
     fn parse_games_dir(&self) -> Result<Arc<[ParsableGameYmlData]>, io::Error> {
-        Ok(read_dir(self.path_games_dir_with_fallback())
+        Ok(read_dir(&self.path_games_dir)
             .map_err(|e| {
                 error!("{LAUNCHER} - Error with reading games directory for Lutris: {e:?}");
                 e
@@ -350,8 +328,8 @@ impl Lutris {
 impl Launcher for Lutris {
     fn is_detected(&self) -> bool {
         self.path_game_paths_json.exists()
-            && (self.path_games_dir.is_dir() || self.fallback_path_games_dir.is_dir())
-            && (self.path_box_art_dir.is_dir() || self.fallback_path_box_art_dir.is_dir())
+            && self.path_games_dir.is_dir()
+            && self.path_box_art_dir.is_dir()
     }
 
     fn get_launcher_type(&self) -> SupportedLaunchers {
@@ -393,13 +371,10 @@ impl Launcher for Lutris {
                         let mut path = None;
                         // First, check if a file name using the game_slug exists
                         if let Some(s) = game_slug {
-                            path =
-                                get_existing_image_path(self.path_box_art_dir_with_fallback(), s);
+                            path = get_existing_image_path(&self.path_box_art_dir, s);
                         }
                         // Otherwise, fallback to using the slug
-                        path.or_else(|| {
-                            get_existing_image_path(self.path_box_art_dir_with_fallback(), slug)
-                        })
+                        path.or_else(|| get_existing_image_path(&self.path_box_art_dir, slug))
                     };
 
                     let path_game_dir = some_if_dir(PathBuf::from(game_dir));

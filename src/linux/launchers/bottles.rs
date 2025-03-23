@@ -167,17 +167,16 @@ impl Bottles {
         let path_bottles_dir = path_bottles_data.join("bottles");
         let path_bottles_library = path_bottles_data.join("library.yml");
 
-        debug!("{LAUNCHER} - using flatpak: {is_using_flatpak}");
         debug!(
-            "{LAUNCHER} - data directory exists: {}",
+            "{LAUNCHER} - data directory exists at {path_bottles_data:?}: {}",
             path_bottles_data.is_dir()
         );
         debug!(
-            "{LAUNCHER} - directory exists: {}",
+            "{LAUNCHER} - bottles directory exists at {path_bottles_dir:?}: {}",
             path_bottles_dir.is_dir()
         );
         debug!(
-            "{LAUNCHER} - library yaml file exists: {}",
+            "{LAUNCHER} - library yaml file exists at {path_bottles_library:?}: {}",
             path_bottles_library.is_file()
         );
 

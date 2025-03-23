@@ -27,16 +27,16 @@ impl HeroicEpic {
     pub fn new(path_home: &Path, path_config: &Path) -> Self {
         let (path_heroic_config, is_using_flatpak) = get_heroic_config_path(path_home, path_config);
 
-        let path_install_info = path_heroic_config.join("store_cache/legendary_library.json");
+        let path_legendary_library = path_heroic_config.join("store_cache/legendary_library.json");
         let path_icons = path_heroic_config.join("icons");
 
         debug!(
-            "{LAUNCHER} - legendary_library json file exists: {}",
-            path_install_info.exists()
+            "{LAUNCHER} - Legendary library json file exists at {path_legendary_library:?}: {}",
+            path_legendary_library.exists()
         );
 
         HeroicEpic {
-            path_legendary_library: path_install_info,
+            path_legendary_library,
             path_icons,
             is_using_flatpak,
         }

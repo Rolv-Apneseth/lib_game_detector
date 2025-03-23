@@ -68,7 +68,7 @@ impl HeroicGOG {
         let path_icons = path_heroic_config.join("icons");
 
         debug!(
-            "{LAUNCHER} - installed games json file exists: {}",
+            "{LAUNCHER} - installed games json file exists at {path_gog_installed_games:?}: {}",
             path_gog_installed_games.exists()
         );
 

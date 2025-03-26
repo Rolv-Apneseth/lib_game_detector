@@ -8,11 +8,10 @@ use tracing::{error, trace, warn};
 
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
-    debug_fallback_flatpak, debug_path,
     linux::launchers::minecraft::get_minecraft_title,
+    macros::logs::{debug_fallback_flatpak, debug_path, warn_no_games},
     parsers::{parse_until_key_cfg, parse_value_cfg},
     utils::{get_launch_command, get_launch_command_flatpak, some_if_dir},
-    warn_no_games,
 };
 
 const LAUNCHER: SupportedLaunchers = SupportedLaunchers::MinecraftPrism;

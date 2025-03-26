@@ -16,10 +16,9 @@ use tracing::{error, trace, warn};
 use super::{get_steam_dir, get_steam_flatpak_dir, get_steam_launch_command};
 use crate::{
     data::{Game, GamesParsingError, GamesResult, Launcher, SupportedLaunchers},
-    debug_fallback_flatpak, debug_path,
+    macros::logs::{debug_fallback_flatpak, debug_path, warn_no_games},
     parsers::{parse_between_double_quotes, parse_not_double_quote},
     utils::{clean_game_title, get_existing_image_path},
-    warn_no_games,
 };
 
 /// Data parseable from a Steam user's `shortcuts.vdf`

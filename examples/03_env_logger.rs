@@ -1,6 +1,3 @@
-extern crate is_terminal;
-extern crate tracing_subscriber;
-
 use is_terminal::IsTerminal;
 use lib_game_detector::get_detector;
 use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};

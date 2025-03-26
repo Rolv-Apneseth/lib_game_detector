@@ -1,5 +1,3 @@
-extern crate tracing_subscriber;
-
 use lib_game_detector::{data::SupportedLaunchers, get_detector};
 use tracing::debug;
 

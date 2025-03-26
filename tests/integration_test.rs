@@ -1,10 +1,8 @@
-use lib_game_detector::error::GamesParsingError;
-
-extern crate lib_game_detector;
+use lib_game_detector::{error::GamesParsingError, get_detector};
 
 #[test]
 fn test_detector() -> Result<(), GamesParsingError> {
-    let detector = lib_game_detector::get_detector();
+    let detector = get_detector();
 
     assert!(!detector.get_detected_launchers().is_empty());
 

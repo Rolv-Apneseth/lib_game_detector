@@ -66,15 +66,16 @@ cfg_if! {
     if #[cfg(all(target_os = "linux"))] {
         mod linux;
         use linux::GamesDetectorLinux;
-
-        /// Primary entry point into the crate - get a [`GamesDetector`]
-        #[must_use]
-        pub fn get_detector() -> Box<dyn GamesDetector> {
-            Box::new(GamesDetectorLinux::new())
-        }
+        type TGamesDetector = GamesDetectorLinux;
     } else {
         compiler_error!("This platform is currently not supported by lib_game_detector");
     }
+}
+
+/// Primary entry point into the crate - get a [`GamesDetector`]
+#[must_use]
+pub fn get_detector() -> Box<dyn GamesDetector> {
+    Box::new(TGamesDetector::default())
 }
 
 // TODO: use [macro_files](https://github.com/MathieuTricoire/macro_files) to reduce size of repo

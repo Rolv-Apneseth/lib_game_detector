@@ -15,16 +15,19 @@ use crate::data::{Game, GamesDetector, GamesPerLauncher, Launchers, SupportedLau
 
 mod launchers;
 
+#[derive(Debug)]
 pub struct GamesDetectorLinux {
     launchers: Launchers,
 }
 
-impl GamesDetectorLinux {
-    pub fn new() -> GamesDetectorLinux {
+impl Default for GamesDetectorLinux {
+    fn default() -> Self {
         let launchers = GamesDetectorLinux::get_supported_launchers();
         GamesDetectorLinux { launchers }
     }
+}
 
+impl GamesDetectorLinux {
     pub fn get_supported_launchers() -> Launchers {
         let path_home = home_dir().expect("Failed to find the user's home directory");
         let path_config = config_dir().expect("Failed to find the user's config directory");

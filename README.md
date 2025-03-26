@@ -15,11 +15,10 @@ where those games are installed, what command will launch them, and more.
 
 ## Quick start
 
-Install with `cargo add lib_game_detector` or add the following to your `Cargo.toml`:
+Install with:
 
-```toml
-[dependencies]
-lib_game_detector = "0.0.15"
+```sh
+cargo add lib_game_detector
 ```
 
 ## Usage

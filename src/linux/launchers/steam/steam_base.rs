@@ -17,7 +17,7 @@ use walkdir::WalkDir;
 use super::{get_steam_dir, get_steam_flatpak_dir, get_steam_launch_command};
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
-    macros::logs::{debug_path, debug_fallback_flatpak},
+    macros::logs::{debug_fallback_flatpak, debug_path},
     parsers::parse_value_json,
     utils::{clean_game_title, some_if_dir, some_if_file},
 };
@@ -293,7 +293,7 @@ mod tests {
     use test_case::test_case;
 
     use super::*;
-    use crate::{data::GamesParsingError, linux::test_utils::get_mock_file_system_path};
+    use crate::{error::GamesParsingError, linux::test_utils::get_mock_file_system_path};
 
     #[test_case(false, ".local/share"; "standard")]
     #[test_case(true, "invalid/data/path"; "flatpak")]

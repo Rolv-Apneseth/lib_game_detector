@@ -1,12 +1,13 @@
+//! Types and traits used by this crate.
+
 use std::{
     fmt::{self, Debug, Display, Formatter},
-    io,
     path::PathBuf,
     process::Command,
     sync::Arc,
 };
 
-use thiserror::Error;
+use crate::error::GamesParsingError;
 
 /// Data structure which defines all relevant data about any particular game
 #[derive(Debug)]
@@ -16,28 +17,6 @@ pub struct Game {
     pub path_game_dir: Option<PathBuf>,
     pub launch_command: Command,
 }
-
-/// Custom error type to be used in the custom `Games` Result type
-#[derive(Error, Debug)]
-pub enum GamesParsingError {
-    #[error(transparent)]
-    Io(#[from] io::Error),
-
-    #[error(transparent)]
-    Nom(#[from] nom::Err<nom::error::Error<String>>),
-
-    #[error("Other error: {0}")]
-    Other(String),
-}
-
-impl From<nom::Err<nom::error::Error<&str>>> for GamesParsingError {
-    fn from(err: nom::Err<nom::error::Error<&str>>) -> Self {
-        Self::Nom(err.map_input(|input| input.into()))
-    }
-}
-
-/// Custom Result type for Games
-pub type GamesResult = Result<Vec<Game>, GamesParsingError>;
 
 /// Data structure representing a supported games source
 #[derive(PartialEq, Eq)]
@@ -63,6 +42,9 @@ pub enum SupportedLaunchers {
     /// Minecraft instances managed by ATLauncher
     MinecraftAT,
 }
+
+/// Custom Result type for Games
+pub type GamesResult = Result<Vec<Game>, GamesParsingError>;
 
 impl Debug for SupportedLaunchers {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {

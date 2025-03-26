@@ -11,13 +11,12 @@ use tracing::{debug, error, trace, warn};
 
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
-    debug_fallback_flatpak, debug_path,
+    macros::logs::{debug_fallback_flatpak, debug_path, warn_no_games},
     parsers::{parse_double_quoted_key_value, parse_until_key_yml, parse_value_yml},
     utils::{
         clean_game_title, get_existing_image_path, get_launch_command, get_launch_command_flatpak,
         some_if_dir,
     },
-    warn_no_games,
 };
 
 #[derive(Debug, Clone)]

@@ -8,12 +8,11 @@ use tracing::{error, trace, warn};
 use super::ParsableLibraryData;
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
-    debug_path,
     linux::launchers::heroic::{
         get_heroic_config_path, get_launch_command_for_heroic_source, parse_all_games_from_library,
     },
+    macros::logs::{debug_path, warn_no_games},
     utils::{some_if_dir, some_if_file},
-    warn_no_games,
 };
 
 const LAUNCHER: SupportedLaunchers = SupportedLaunchers::HeroicGamesSideload;

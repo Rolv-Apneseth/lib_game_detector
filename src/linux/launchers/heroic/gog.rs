@@ -9,11 +9,10 @@ use tracing::{error, trace, warn};
 
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
-    debug_path,
     linux::launchers::heroic::{get_heroic_config_path, get_launch_command_for_heroic_source},
+    macros::logs::{debug_path, warn_no_games},
     parsers::parse_value_json,
     utils::{clean_game_title, some_if_dir, some_if_file},
-    warn_no_games,
 };
 
 #[derive(Debug)]

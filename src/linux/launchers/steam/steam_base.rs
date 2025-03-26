@@ -17,7 +17,7 @@ use walkdir::WalkDir;
 use super::{get_steam_dir, get_steam_flatpak_dir, get_steam_launch_command};
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
-    debug_fallback_flatpak, debug_path,
+    macros::logs::{debug_path, debug_fallback_flatpak},
     parsers::parse_value_json,
     utils::{clean_game_title, some_if_dir, some_if_file},
 };

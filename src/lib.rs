@@ -51,6 +51,7 @@
 use cfg_if::cfg_if;
 
 pub mod data;
+pub mod error;
 mod macros;
 mod parsers;
 mod utils;
@@ -62,6 +63,7 @@ cfg_if! {
         mod linux;
         use linux::GamesDetectorLinux;
 
+        /// Primary entry point into the crate - get a [`GamesDetector`]
         pub fn get_detector() -> Box<dyn GamesDetector> {
             Box::new(GamesDetectorLinux::new())
         }

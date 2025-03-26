@@ -1,4 +1,4 @@
-use lib_game_detector::data::GamesParsingError;
+use lib_game_detector::error::GamesParsingError;
 
 extern crate lib_game_detector;
 

@@ -48,6 +48,10 @@
 //! - Modded Minecraft (Prism Launcher, ATLauncher)
 //!   - Titles are given as `Minecraft - {instance name}`
 
+#![deny(missing_docs)]
+#![deny(missing_debug_implementations)]
+#![warn(clippy::must_use_candidate)]
+
 use cfg_if::cfg_if;
 
 pub mod data;
@@ -64,6 +68,7 @@ cfg_if! {
         use linux::GamesDetectorLinux;
 
         /// Primary entry point into the crate - get a [`GamesDetector`]
+        #[must_use]
         pub fn get_detector() -> Box<dyn GamesDetector> {
             Box::new(GamesDetectorLinux::new())
         }

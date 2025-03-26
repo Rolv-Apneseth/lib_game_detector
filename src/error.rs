@@ -7,12 +7,15 @@ use thiserror::Error;
 /// Custom error type returned when something goes wrong with parsing games from a launcher.
 #[derive(Error, Debug)]
 pub enum GamesParsingError {
+    /// Error originating from [`io::Error`]
     #[error(transparent)]
     Io(#[from] io::Error),
 
+    /// Error originating from [`nom::Err`]
     #[error(transparent)]
     Nom(#[from] nom::Err<nom::error::Error<String>>),
 
+    /// Error originating from any other source
     #[error("Other error: {0}")]
     Other(String),
 }

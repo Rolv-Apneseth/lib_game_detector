@@ -12,9 +12,13 @@ use crate::error::GamesParsingError;
 /// Data structure which defines all relevant data about any particular game
 #[derive(Debug)]
 pub struct Game {
+    /// Game title / name.
     pub title: String,
+    /// Path to the box art image for a game (if one was found).
     pub path_box_art: Option<PathBuf>,
+    /// Path to the game's root directory (if one was found).
     pub path_game_dir: Option<PathBuf>,
+    /// Command to launch the game.
     pub launch_command: Command,
 }
 
@@ -76,19 +80,32 @@ impl Display for SupportedLaunchers {
 
 // Game detection is divided up by "launchers" which are just specific sources of games
 // e.g. Steam, Heroic Games Launcher, etc.
+/// Source of games, e.g. Steam, Heroic Games Launcher.
 pub trait Launcher: Send + Debug {
-    fn get_detected_games(&self) -> GamesResult;
-    fn is_detected(&self) -> bool;
+    /// Returns the [`SupportedLaunchers`] variant of this launcher.
     fn get_launcher_type(&self) -> SupportedLaunchers;
+    /// Returns `true` if this source is detected on the user's system.
+    fn is_detected(&self) -> bool;
+    /// Get all games detected from this source.
+    fn get_detected_games(&self) -> GamesResult;
 }
+/// Container for [`Launcher`].
 pub type Launchers = Vec<Arc<dyn Launcher>>;
+/// Container for games divided by their source [`SupportedLaunchers`].
 pub type GamesPerLauncher = Vec<(SupportedLaunchers, Vec<Game>)>;
 
+/// Defines methods for a detector which will be used for parsing launchers and games from those
+/// launchers.
 pub trait GamesDetector {
+    /// Returns all detected launchers.
     fn get_detected_launchers(&self) -> Launchers;
+    /// Returns all detected games from all detected launchers.
     fn get_all_detected_games(&self) -> Vec<Game>;
+    /// Returns all detected games from all detected launchers, which also have detected box art.
     fn get_all_detected_games_with_box_art(&self) -> Vec<Game>;
+    /// Returns all detected games divided by their source launchers.
     fn get_all_detected_games_per_launcher(&self) -> GamesPerLauncher;
+    /// Returns all detected games from a specific launcher, identified by [`SupportedLaunchers`].
     fn get_all_detected_games_from_specific_launcher(
         &self,
         launcher_type: SupportedLaunchers,

@@ -9,7 +9,7 @@ use nom::{
     bytes::complete::{is_not, tag, take_till},
     character::complete::multispace1,
     sequence::preceded,
-    IResult,
+    IResult, Parser,
 };
 use tracing::{error, trace, warn};
 
@@ -70,12 +70,13 @@ fn parse_game_from_bottle_yml(file_content: &str) -> IResult<&str, ParsableBottl
     let key_game_dir = "folder";
     let (file_content, _) = parse_until_key_yml(file_content, key_game_dir)?;
     let (mut file_content, first_path_fragment) =
-        preceded(take_till(|c| c == '/'), parse_till_end_of_line)(file_content)?;
+        preceded(take_till(|c| c == '/'), parse_till_end_of_line).parse(file_content)?;
 
     // Path can be split into multiple lines unfortunately
     let mut game_dir_fragments: Vec<&str> = vec![&first_path_fragment];
     loop {
-        let (new_file_content, line) = preceded(tag("\n"), parse_till_end_of_line)(file_content)?;
+        let (new_file_content, line) =
+            preceded(tag("\n"), parse_till_end_of_line).parse(file_content)?;
 
         if line.contains(':') {
             break;
@@ -83,7 +84,7 @@ fn parse_game_from_bottle_yml(file_content: &str) -> IResult<&str, ParsableBottl
 
         file_content = new_file_content;
 
-        let (path_fragment, _) = multispace1(line)?;
+        let (path_fragment, _) = multispace1.parse(line)?;
 
         game_dir_fragments.push(path_fragment);
     }
@@ -124,14 +125,15 @@ fn parse_game_from_library<'a>(file_content: &'a str) -> IResult<&'a str, Parsab
     // BOX ART
     let key_box_art = "thumbnail";
     let (file_content, _) = parse_until_key_yml(file_content, key_box_art)?;
-    let (file_content, _) = preceded(parse_not_alphanumeric, is_not(":"))(file_content)?;
+    let (file_content, _) = preceded(parse_not_alphanumeric, is_not(":")).parse(file_content)?;
 
-    let box_art =
-        if let Ok((_, box_art)) = preceded(tag(": grid:"), parse_till_end_of_line)(file_content) {
-            Some(box_art.to_owned())
-        } else {
-            None
-        };
+    let box_art = if let Ok((_, box_art)) =
+        preceded(tag(": grid:"), parse_till_end_of_line).parse(file_content)
+    {
+        Some(box_art.to_owned())
+    } else {
+        None
+    };
 
     Ok((
         file_content,

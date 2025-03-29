@@ -7,9 +7,8 @@ use std::{
 
 use nom::{
     bytes::complete::{tag, take_till},
-    character::is_alphanumeric,
     sequence::delimited,
-    IResult,
+    AsChar, IResult, Parser,
 };
 use tracing::{debug, error, trace, warn};
 use walkdir::WalkDir;
@@ -36,9 +35,10 @@ const LAUNCHER: SupportedLaunchers = SupportedLaunchers::Steam;
 fn parse_manifest_filename(filename: &str) -> IResult<&str, &str> {
     delimited(
         tag("appmanifest_"),
-        take_till(|a| !is_alphanumeric(a as u8)),
+        take_till(|a| !(a as u8).is_alphanum()),
         tag(".acf"),
-    )(filename)
+    )
+    .parse(filename)
 }
 
 /// Used for parsing relevant game's data from the given app manifest file's contents

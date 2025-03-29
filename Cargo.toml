@@ -6,6 +6,7 @@ description = "A Rust library for detecting and parsing data about games install
 readme = "README.md"
 repository = "https://github.com/rolv-apneseth/lib_game_detector/"
 license = "AGPL-3.0"
+rust-version = "1.78.0"
 
 [dependencies]
 dirs = "5.0.1"

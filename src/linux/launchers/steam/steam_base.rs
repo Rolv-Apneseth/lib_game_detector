@@ -31,7 +31,7 @@ const LAUNCHER: SupportedLaunchers = SupportedLaunchers::Steam;
 
 // UTILS --------------------------------------------------------------------------------
 /// Used for checking if a file name matches the structure for an app manifest file
-#[tracing::instrument]
+#[tracing::instrument(level = "trace")]
 fn parse_manifest_filename(filename: &str) -> IResult<&str, &str> {
     delimited(
         tag("appmanifest_"),
@@ -39,6 +39,21 @@ fn parse_manifest_filename(filename: &str) -> IResult<&str, &str> {
         tag(".acf"),
     )
     .parse(filename)
+}
+
+/// Used for getting the path to the "steamapps" directory, which can be capitalised on some systems.
+#[tracing::instrument(level = "trace")]
+fn get_path_steamapps_dir(path_parent_dir: &Path) -> PathBuf {
+    let path_steamapps_dir = path_parent_dir.join("Steamapps");
+
+    // Use the capitalised version of directory if it exists
+    if path_steamapps_dir.is_dir() {
+        path_steamapps_dir
+    }
+    // Otherwise proceed with the default
+    else {
+        path_parent_dir.join("steamapps")
+    }
 }
 
 /// Used for parsing relevant game's data from the given app manifest file's contents
@@ -74,7 +89,7 @@ impl SteamLibrary<'_> {
     /// Find and return paths of the app manifest files, if they exist
     #[tracing::instrument(level = "trace")]
     fn get_manifest_paths(&self) -> Result<Arc<[PathBuf]>, io::Error> {
-        Ok(read_dir(self.path_library.join("steamapps"))?
+        Ok(read_dir(get_path_steamapps_dir(&self.path_library))?
             .flatten()
             .filter_map(|path| {
                 let filename_os_str = path.file_name();
@@ -229,9 +244,10 @@ impl Steam {
     /// Get all available steam libraries by parsing the `libraryfolders.vdf` file
     #[tracing::instrument(level = "trace")]
     pub fn get_steam_libraries(&self) -> Result<Vec<SteamLibrary>, io::Error> {
-        let libraries_vdg_path = self.path_steam_dir.join("steamapps/libraryfolders.vdf");
+        let libraries_vdg_path =
+            get_path_steamapps_dir(&self.path_steam_dir).join("libraryfolders.vdf");
 
-        debug!("{LAUNCHER} - libraryfolders.vdf path: {libraries_vdg_path:?}");
+        debug_path!("libraryfolders.vdf", libraries_vdg_path);
 
         Ok(BufReader::new(File::open(libraries_vdg_path)?)
             .lines()

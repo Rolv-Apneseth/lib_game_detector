@@ -3,6 +3,7 @@ alias b := bench
 alias bd := bench-divan
 alias bl := bench-launchers
 alias d := develop
+alias dr := develop-readme
 alias e := example
 alias f := format
 alias l := lint
@@ -46,3 +47,7 @@ example EXAMPLE=("basic"):
 # Run test suite whenever any change is made
 develop:
     bacon test
+
+# Re-generate the README whenever a change is made to `lib.rs`
+develop-readme:
+    bacon rdme

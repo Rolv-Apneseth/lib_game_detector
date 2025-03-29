@@ -7,6 +7,7 @@ alias dr := develop-readme
 alias e := example
 alias f := format
 alias l := lint
+alias p := publish
 
 # COMMANDS -----------------------------------------------------------------------------------------
 
@@ -26,9 +27,21 @@ lint:
 build: format
     cargo build --release
 
+# Doc
+doc:
+    cargo doc
+
+# MSRV
+msrv:
+    cargo msrv verify
+
 # Test
-test: format
+test: format doc msrv
     cargo test --all
+
+# Publish
+publish: test
+    cargo publish
 
 # Benchmark
 bench BENCH=("main"):

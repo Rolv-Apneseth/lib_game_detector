@@ -41,3 +41,8 @@ jobs:
 
             - name: Tests
               run: cargo test --lib --examples --verbose
+
+            - name: README updated
+              run: |
+                cargo install cargo-rdme
+                cargo rdme --check

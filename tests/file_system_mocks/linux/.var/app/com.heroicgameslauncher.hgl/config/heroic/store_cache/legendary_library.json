@@ -77,6 +77,24 @@
 				"reqs": [],
 				"storeUrl": "https://www.epicgames.com/store/product/rocket-league"
 			},
+			"dlcList": [
+				{
+					"namespace": "9773aa1aa54f4f7b80e44bef04986cea",
+					"releaseInfo": [],
+					"requiresSecureAccount": false,
+					"status": "ACTIVE",
+					"title": "S7E2 Audience",
+					"unsearchable": true
+				},
+				{
+					"namespace": "9773aa1aa54f4f7b80e44bef04986cea",
+					"releaseInfo": [],
+					"requiresSecureAccount": false,
+					"status": "ACTIVE",
+					"title": "Rocket League® - Season 18 Rocketeer Pack",
+					"unsearchable": true
+				}
+			],
 			"folder_name": "rocketleague",
 			"install": {
 				"executable": "Binaries/Win64/RocketLeague.exe",
@@ -102,4 +120,3 @@
 		"library": "Sun Oct 29 2023 01:48:00 GMT+0100 (Irish Standard Time)"
 	}
 }
-

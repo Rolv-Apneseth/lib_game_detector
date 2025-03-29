@@ -3,6 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use nom::IResult;
 use tracing::{error, trace, warn};
 
 use super::ParsableLibraryData;
@@ -12,10 +13,48 @@ use crate::{
         get_heroic_config_path, get_launch_command_for_heroic_source, parse_all_games_from_library,
     },
     macros::logs::{debug_path, warn_no_games},
-    utils::{some_if_dir, some_if_file},
+    parsers::{parse_value_json, parse_value_json_unquoted},
+    utils::{clean_game_title, some_if_dir, some_if_file},
 };
 
 const LAUNCHER: SupportedLaunchers = SupportedLaunchers::HeroicGamesSideload;
+
+/// Utility function which parses a single game from the Heroic Games side-load apps `library.json` file
+///
+/// A separate parser function is necessary for this library file because the required fields are
+/// listed in a different order to the Nile and Legendary library files.
+#[tracing::instrument(level = "trace", skip(file_content))]
+fn parse_game_from_sideload_library(file_content: &str) -> IResult<&str, ParsableLibraryData> {
+    // ID
+    let (file_content, app_id) = parse_value_json(file_content, "app_name")?;
+
+    // Keep checkpoint of file content because `is_installed` comes after the `install_path`
+    // and `title` may come before install info
+    let file_content_checkpoint = file_content;
+
+    // IS_INSTALLED
+    let (_, is_installed) = parse_value_json_unquoted(file_content, "is_installed")?;
+
+    // Continue to next game if not installed
+    if is_installed == *"false" {
+        return parse_game_from_sideload_library(file_content);
+    }
+
+    // TITLE
+    let (file_content, title) = parse_value_json(file_content_checkpoint, "title")?;
+
+    // INSTALL_PATH
+    let (file_content, install_path) = parse_value_json(file_content, "folder_name")?;
+
+    Ok((
+        file_content,
+        ParsableLibraryData {
+            app_id,
+            title: clean_game_title(title),
+            install_path,
+        },
+    ))
+}
 
 #[derive(Debug)]
 pub struct HeroicSideload {
@@ -40,7 +79,7 @@ impl HeroicSideload {
         }
     }
 
-    /// Parse all relevant games' data from `legendary_library.json`
+    /// Parse all relevant games' data from `library.json`
     #[tracing::instrument(level = "trace")]
     fn parse_sideload_library(&self) -> Result<Vec<ParsableLibraryData>, io::Error> {
         trace!(
@@ -48,7 +87,11 @@ impl HeroicSideload {
             self.path_sideload_library
         );
 
-        parse_all_games_from_library(&self.path_sideload_library).inspect(|data| {
+        parse_all_games_from_library(
+            &self.path_sideload_library,
+            parse_game_from_sideload_library,
+        )
+        .inspect(|data| {
             if data.is_empty() {
                 warn!(
                     "{LAUNCHER} - No games were parsed from the Legendary library file at {:?}",

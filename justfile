@@ -45,4 +45,4 @@ example EXAMPLE=("basic"):
 
 # Run test suite whenever any change is made
 develop:
-    cargo watch -s "just test"
+    bacon test

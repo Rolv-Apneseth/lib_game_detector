@@ -1,5 +1,7 @@
 # lib_game_detector
 
+<!-- cargo-rdme start -->
+
 [![Crate](https://img.shields.io/crates/v/lib_game_detector.svg)](https://crates.io/crates/lib_game_detector)
 [![License](https://img.shields.io/badge/License-AGPLv3-green.svg)](https://github.com/Rolv-Apneseth/lib_game_detector/blob/main/LICENSE)
 
@@ -48,6 +50,8 @@ let all_games_from_steam = detector.get_all_detected_games_from_specific_launche
   - Only lists entries included in the Library
 - Modded Minecraft (Prism Launcher, ATLauncher)
   - Titles are given as `Minecraft - {instance name}`
+
+<!-- cargo-rdme end -->
 
 ## License
 

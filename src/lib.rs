@@ -1,4 +1,7 @@
+//! [![Docs](https://img.shields.io/docsrs/lib_game_detector)](https://docs.rs/lib_game_detector)
 //! [![Crate](https://img.shields.io/crates/v/lib_game_detector.svg)](https://crates.io/crates/lib_game_detector)
+//! [![Downloads](https://img.shields.io/crates/d/lib_game_detector.svg?label=crates.io%20downloads)](https://crates.io/crates/lib_game_detector)
+//! [![Dependency status](https://deps.rs/repo/github/Rolv-Apneseth/lib_game_detector/status.svg)](https://deps.rs/repo/github/Rolv-Apneseth/lib_game_detector)
 //! [![License](https://img.shields.io/badge/License-AGPLv3-green.svg)](https://github.com/Rolv-Apneseth/lib_game_detector/blob/main/LICENSE)
 //!
 //! A Rust library for detecting and parsing data about games installed on the system. Currently

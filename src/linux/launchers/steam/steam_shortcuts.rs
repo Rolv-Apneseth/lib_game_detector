@@ -8,7 +8,7 @@ use nom::{
     bytes::complete::{take_till, take_until},
     character::complete::char,
     sequence::delimited,
-    IResult,
+    IResult, Parser,
 };
 use steam_shortcuts_util::parse_shortcuts;
 use tracing::{error, trace, warn};
@@ -154,10 +154,10 @@ fn parse_screenshots_vdf<'a>(
     let mut data = vec![];
 
     // Parse until "shortcutnames" and grab the next block contained by `{}`
-    let (file_content, _) = take_until("\"shortcutnames\"")(file_content)?;
-    let (file_content, _) = take_till(|c| c == '{')(file_content)?;
+    let (file_content, _) = take_until("\"shortcutnames\"").parse(file_content)?;
+    let (file_content, _) = take_till(|c| c == '{').parse(file_content)?;
     let (file_content, mut block) =
-        delimited(char('{'), take_till(|c| c == '}'), char('}'))(file_content)?;
+        delimited(char('{'), take_till(|c| c == '}'), char('}')).parse(file_content)?;
 
     // Remove trailing whitespace so the below while block condition fails before running with the empty line
     block = block.trim_end();

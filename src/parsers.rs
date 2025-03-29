@@ -1,15 +1,12 @@
 use nom::{
     bytes::complete::{is_not, tag, take_till, take_until},
-    character::{
-        complete::{alpha1, char},
-        is_alphanumeric, is_newline,
-    },
+    character::complete::{alpha1, char},
     sequence::{delimited, preceded},
-    IResult,
+    AsChar, IResult, Parser,
 };
 // GENERAL ----------------------------------------------------------------------------------------
 pub fn parse_between_double_quotes(input: &str) -> IResult<&str, &str> {
-    delimited(char('"'), is_not("\""), char('"'))(input)
+    delimited(char('"'), is_not("\""), char('"')).parse(input)
 }
 
 pub fn parse_not_double_quote(input: &str) -> IResult<&str, &str> {
@@ -17,17 +14,18 @@ pub fn parse_not_double_quote(input: &str) -> IResult<&str, &str> {
 }
 
 pub fn parse_not_alphanumeric(input: &str) -> IResult<&str, &str> {
-    take_till(|a| is_alphanumeric(a as u8))(input)
+    take_till(|a| (a as u8).is_alphanum())(input)
 }
 
 pub fn parse_till_end_of_line(input: &str) -> IResult<&str, &str> {
-    take_till(|a| is_newline(a as u8))(input)
+    take_till(|a| (a as u8).is_newline())(input)
 }
 
 /// Parse both the key and value from a given line of a `.json` file (both values must be quoted)
 pub fn parse_double_quoted_key_value(line: &str) -> IResult<&str, (&str, &str)> {
-    let (line, key) = preceded(parse_not_double_quote, parse_between_double_quotes)(line)?;
-    let (line, value) = preceded(parse_not_double_quote, parse_between_double_quotes)(line)?;
+    let (line, key) = preceded(parse_not_double_quote, parse_between_double_quotes).parse(line)?;
+    let (line, value) =
+        preceded(parse_not_double_quote, parse_between_double_quotes).parse(line)?;
 
     Ok((line, (key, value)))
 }
@@ -38,7 +36,7 @@ pub fn parse_double_quoted_key_value(line: &str) -> IResult<&str, (&str, &str)> 
 pub fn parse_until_key_json<'a>(file_content: &'a str, key: &'a str) -> IResult<&'a str, String> {
     let quoted_key = format!("\"{key}\"");
 
-    let (file_content, _) = take_until(quoted_key.as_str())(file_content)?;
+    let (file_content, _) = take_until(quoted_key.as_str()).parse(file_content)?;
     Ok((file_content, quoted_key))
 }
 
@@ -47,7 +45,7 @@ pub fn parse_until_key_json<'a>(file_content: &'a str, key: &'a str) -> IResult<
 pub fn parse_until_key_yml<'a>(file_content: &'a str, key: &'a str) -> IResult<&'a str, String> {
     let key_with_colon = format!("{key}:");
 
-    let (file_content, _) = take_until(key_with_colon.as_str())(file_content)?;
+    let (file_content, _) = take_until(key_with_colon.as_str()).parse(file_content)?;
     Ok((file_content, key_with_colon))
 }
 
@@ -56,7 +54,7 @@ pub fn parse_until_key_yml<'a>(file_content: &'a str, key: &'a str) -> IResult<&
 pub fn parse_until_key_cfg<'a>(file_content: &'a str, key: &'a str) -> IResult<&'a str, String> {
     let key_with_equals = format!("{key}=");
 
-    let (file_content, _) = take_until(key_with_equals.as_str())(file_content)?;
+    let (file_content, _) = take_until(key_with_equals.as_str()).parse(file_content)?;
     Ok((file_content, key_with_equals))
 }
 
@@ -65,10 +63,10 @@ pub fn parse_until_key_cfg<'a>(file_content: &'a str, key: &'a str) -> IResult<&
 /// e.g. "keyName": "value"
 pub fn parse_value_json<'a>(file_content: &'a str, key: &'a str) -> IResult<&'a str, String> {
     let (file_content, matched_key) = parse_until_key_json(file_content, key)?;
-    let (file_content, _) = tag(matched_key.as_str())(file_content)?;
+    let (file_content, _) = tag(matched_key.as_str()).parse(file_content)?;
 
     let (file_content, value) =
-        preceded(parse_not_double_quote, parse_between_double_quotes)(file_content)?;
+        preceded(parse_not_double_quote, parse_between_double_quotes).parse(file_content)?;
 
     Ok((file_content, value.to_string()))
 }
@@ -80,9 +78,9 @@ pub fn parse_value_json_unquoted<'a>(
     key: &'a str,
 ) -> IResult<&'a str, String> {
     let (file_content, matched_key) = parse_until_key_json(file_content, key)?;
-    let (file_content, _) = tag(matched_key.as_str())(file_content)?;
+    let (file_content, _) = tag(matched_key.as_str()).parse(file_content)?;
 
-    let (file_content, value) = preceded(parse_not_alphanumeric, alpha1)(file_content)?;
+    let (file_content, value) = preceded(parse_not_alphanumeric, alpha1).parse(file_content)?;
 
     Ok((file_content, value.to_string()))
 }
@@ -92,10 +90,10 @@ pub fn parse_value_json_unquoted<'a>(
 pub fn parse_value_yml<'a>(file_content: &'a str, key: &'a str) -> IResult<&'a str, String> {
     let (file_content, matched_key) = parse_until_key_yml(file_content, key)?;
 
-    let (file_content, _) = tag(matched_key.as_str())(file_content)?;
+    let (file_content, _) = tag(matched_key.as_str()).parse(file_content)?;
 
     let (file_content, value) =
-        preceded(parse_not_alphanumeric, parse_till_end_of_line)(file_content)?;
+        preceded(parse_not_alphanumeric, parse_till_end_of_line).parse(file_content)?;
 
     Ok((file_content, value.to_string()))
 }
@@ -104,7 +102,7 @@ pub fn parse_value_yml<'a>(file_content: &'a str, key: &'a str) -> IResult<&'a s
 /// e.g. keyName=value
 pub fn parse_value_cfg<'a>(file_content: &'a str, key: &'a str) -> IResult<&'a str, String> {
     let (file_content, matched_key) = parse_until_key_cfg(file_content, key)?;
-    let (file_content, _) = tag(matched_key.as_str())(file_content)?;
+    let (file_content, _) = tag(matched_key.as_str()).parse(file_content)?;
 
     let (file_content, value) = parse_till_end_of_line(file_content)?;
 

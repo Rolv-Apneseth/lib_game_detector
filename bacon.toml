@@ -54,10 +54,16 @@ allow_warnings = true
 [jobs.rdme]
 command = ["cargo", "rdme", "--force"]
 need_stdout = true
-allow_warnings = true
+allow_warnings = false
 background = true
 default_watch = false
 watch = ["./src/lib.rs"]
+
+[jobs.msrv]
+command = ["cargo", "msrv", "verify"]
+need_stdout = true
+allow_warnings = false
+background = true
 
 [keybindings]
 c = "job:clippy"

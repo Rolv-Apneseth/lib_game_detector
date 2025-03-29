@@ -4,7 +4,11 @@ on:
     push:
         branches: ["main"]
     pull_request:
-        branches: ["main"]
+
+# Cancel in-progress workflows for a PR if it is updated
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
 
 env:
     CARGO_TERM_COLOR: always

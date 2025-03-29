@@ -9,7 +9,8 @@ use super::ParsableLibraryData;
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
     linux::launchers::heroic::{
-        get_heroic_config_path, get_launch_command_for_heroic_source, parse_all_games_from_library,
+        get_heroic_config_path, get_launch_command_for_heroic_source,
+        parse_all_games_from_library_common,
     },
     macros::logs::{debug_path, warn_no_games},
     utils::{some_if_dir, some_if_file},
@@ -48,7 +49,7 @@ impl HeroicAmazon {
             self.path_nile_library
         );
 
-        parse_all_games_from_library(&self.path_nile_library).inspect(|data| {
+        parse_all_games_from_library_common(&self.path_nile_library).inspect(|data| {
             if data.is_empty() {
                 warn!(
                     "{LAUNCHER} - No games were parsed from the Nile library file at {:?}",

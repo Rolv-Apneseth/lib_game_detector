@@ -1,5 +1,4 @@
 use std::{
-    fs::read_to_string,
     io::{self},
     path::{Path, PathBuf},
 };
@@ -9,7 +8,9 @@ use tracing::{error, trace, warn};
 
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
-    linux::launchers::heroic::{get_heroic_config_path, get_launch_command_for_heroic_source},
+    linux::launchers::heroic::{
+        get_heroic_config_path, get_launch_command_for_heroic_source, parse_all_games_from_library,
+    },
     macros::logs::{debug_path, warn_no_games},
     parsers::parse_value_json,
     utils::{clean_game_title, some_if_dir, some_if_file},
@@ -85,31 +86,18 @@ impl HeroicGOG {
             self.path_gog_installed_games
         );
 
-        let mut parsed_data = Vec::new();
-
-        let file_content = read_to_string(&self.path_gog_installed_games)?;
-        let mut file_content_str: &str = &file_content;
-
-        // Parse individual games from GOG installed file until no more are found
-        loop {
-            let Ok((new_file_content, parsed_game_data)) =
-                parse_game_from_gog_installed(file_content_str)
-            else {
-                break;
+        parse_all_games_from_library::<ParsableGOGInstalledData>(
+            &self.path_gog_installed_games,
+            parse_game_from_gog_installed,
+        )
+        .inspect(|data| {
+            if data.is_empty() {
+                warn!(
+                    "{LAUNCHER} - No games were parsed from the GOG installed games file at {:?}",
+                    self.path_gog_installed_games
+                )
             };
-
-            file_content_str = new_file_content;
-            parsed_data.push(parsed_game_data);
-        }
-
-        if parsed_data.is_empty() {
-            warn!(
-                "{LAUNCHER} - No games were parsed from the GOG installed games file at {:?}",
-                self.path_gog_installed_games
-            )
-        };
-
-        Ok(parsed_data)
+        })
     }
 }
 

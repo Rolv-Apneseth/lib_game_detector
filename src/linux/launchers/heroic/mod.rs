@@ -28,7 +28,7 @@ struct ParsableLibraryData {
 
 /// Parses a single (installed) game from a Heroic Games Launcher library file
 #[tracing::instrument(level = "trace", skip(file_content))]
-fn parse_game_from_library(file_content: &str) -> IResult<&str, ParsableLibraryData> {
+fn parse_game_from_library_common(file_content: &str) -> IResult<&str, ParsableLibraryData> {
     // ID
     let (file_content, app_id) = parse_value_json(file_content, "app_name")?;
 
@@ -41,16 +41,14 @@ fn parse_game_from_library(file_content: &str) -> IResult<&str, ParsableLibraryD
 
     // Continue to next game if not installed
     if is_installed == *"false" {
-        return parse_game_from_library(file_content);
+        return parse_game_from_library_common(file_content);
     }
 
     // INSTALL_PATH
-    let (_, install_path) = parse_value_json(file_content_checkpoint, "install_path")
-        // Fallback to the parent dir of the executable (if found)
-        .or_else(|_| parse_value_json(file_content_checkpoint, "folder_name"))?;
+    let (file_content, install_path) = parse_value_json(file_content_checkpoint, "install_path")?;
 
     // TITLE
-    let (file_content, title) = parse_value_json(file_content_checkpoint, "title")?;
+    let (file_content, title) = parse_value_json(file_content, "title")?;
 
     Ok((
         file_content,
@@ -64,9 +62,10 @@ fn parse_game_from_library(file_content: &str) -> IResult<&str, ParsableLibraryD
 
 /// Parses all (installed) games from a given Heroic Games Launcher library file
 #[tracing::instrument]
-fn parse_all_games_from_library(
+fn parse_all_games_from_library<T>(
     path_library: &Path,
-) -> Result<Vec<ParsableLibraryData>, io::Error> {
+    parse_fn: fn(file_content: &str) -> IResult<&str, T>,
+) -> Result<Vec<T>, io::Error> {
     let mut parsed_data = Vec::new();
 
     let file_content = read_to_string(path_library)?;
@@ -74,8 +73,7 @@ fn parse_all_games_from_library(
 
     // Parse individual games from library file until no more are found
     loop {
-        let Ok((new_file_content, parsed_game_data)) = parse_game_from_library(file_content_str)
-        else {
+        let Ok((new_file_content, parsed_game_data)) = parse_fn(file_content_str) else {
             break;
         };
 
@@ -84,6 +82,11 @@ fn parse_all_games_from_library(
     }
 
     Ok(parsed_data)
+}
+
+#[tracing::instrument]
+fn parse_all_games_from_library_common(path: &Path) -> Result<Vec<ParsableLibraryData>, io::Error> {
+    parse_all_games_from_library::<ParsableLibraryData>(path, parse_game_from_library_common)
 }
 
 /// Get path to the Heroic Games Launcher config dir, falling back to the flatpak version if necessary

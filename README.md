@@ -46,7 +46,9 @@ let all_games_from_steam = detector.get_all_detected_games_from_specific_launche
 ## Currently supported game sources
 
 - Steam
-  - Non-Steam games added as shortcuts are also supported. Make sure to restart Steam at least once for new shortcuts to be detected
+  - Non-Steam games added as shortcuts are also supported. Just make sure to launch newly added
+    shortcuts through Steam at at least once for them to be detected correctly (some files need
+    to be generated).
 - Heroic Games Launcher (Legendary, Nile, GOG, and manually added games)
 - Lutris
 - Bottles

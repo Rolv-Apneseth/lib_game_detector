@@ -4,6 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use itertools::Itertools;
 use nom::{
     bytes::complete::{take_till, take_until},
     character::complete::char,
@@ -57,7 +58,7 @@ impl ParsableDataCombined {
 
         ParsableDataCombined {
             title: shortcut_data.title,
-            app_id: screenshot_data.app_id.clone(),
+            app_id: screenshot_data.app_id,
             path_box_art,
         }
     }
@@ -87,6 +88,9 @@ fn find_userdata_files(
 
             let p = p.path();
             let path_config = p.join("config");
+            if !path_config.is_dir() {
+                return None;
+            }
 
             let path_screenshots = p.join("760").join("screenshots.vdf");
             if !path_screenshots.is_file() {
@@ -210,44 +214,45 @@ impl SteamShortcuts {
     }
 
     #[tracing::instrument(level = "trace")]
-    fn parse_combined_data(&self) -> Result<Option<Vec<ParsableDataCombined>>, GamesParsingError> {
-        let shortcut_files = find_userdata_files(&self.path_steam_userdata_dir)?;
+    fn parse_combined_data(&self) -> Result<Vec<ParsableDataCombined>, GamesParsingError> {
+        let userdata_files = find_userdata_files(&self.path_steam_userdata_dir)?;
 
-        // TODO: find way to know what user is logged in so we can choose the correct file
-        let Some(UserDataFiles {
-            path_shortcuts,
-            path_screenshots,
-            path_box_art_dir,
-        }) = shortcut_files.into_iter().next()
-        else {
-            // One of the paths could not be found, no shortcuts available for the user
-            return Ok(None);
-        };
+        userdata_files
+            .into_iter()
+            .map(
+                |UserDataFiles {
+                     path_shortcuts,
+                     path_screenshots,
+                     path_box_art_dir,
+                 }| {
+                    let shortcuts_data = get_parsable_shortcuts_data(&path_shortcuts)?;
+                    let mut screenshots_data = get_parsable_screenshots_data(&path_screenshots)?;
 
-        let shortcuts_data = get_parsable_shortcuts_data(&path_shortcuts)?;
-        let mut screenshots_data = get_parsable_screenshots_data(&path_screenshots)?;
-
-        Ok(Some(
-            shortcuts_data
-                .iter()
-                .cloned()
-                .filter_map(|shortcut_data| {
-                    screenshots_data
-                        .iter_mut()
-                        // Reverse because the last entry is the newest one and this file doesn't seem to
-                        // get reset, so we want to take the one most likely to be correct
-                        .rev()
-                        .find(|d| !d.title.is_empty() && d.title == shortcut_data.title)
-                        .map(|screenshot_data| {
-                            ParsableDataCombined::combine(
-                                &path_box_art_dir,
-                                shortcut_data,
-                                mem::take(screenshot_data),
-                            )
+                    let res = shortcuts_data
+                        .into_iter()
+                        .filter_map(|shortcut_data| {
+                            screenshots_data
+                                .iter_mut()
+                                // Reverse because the last entry is the newest one and this file doesn't seem to
+                                // get reset, so we want to take the one most likely to be correct (in the
+                                // case of duplicate entries)
+                                .rev()
+                                .find(|d| !d.title.is_empty() && d.title == shortcut_data.title)
+                                .map(|screenshot_data| {
+                                    ParsableDataCombined::combine(
+                                        &path_box_art_dir,
+                                        shortcut_data,
+                                        mem::take(screenshot_data),
+                                    )
+                                })
                         })
-                })
-                .collect(),
-        ))
+                        .collect_vec();
+
+                    Ok::<Vec<ParsableDataCombined>, GamesParsingError>(res)
+                },
+            )
+            .flatten_ok()
+            .collect()
     }
 }
 
@@ -262,13 +267,10 @@ impl Launcher for SteamShortcuts {
 
     #[tracing::instrument(level = "trace")]
     fn get_detected_games(&self) -> GamesResult {
-        let shortcut_data = self
-            .parse_combined_data()
-            .map_err(|e| {
-                error!("{LAUNCHER} - {e}");
-                e
-            })?
-            .unwrap_or_default();
+        let shortcut_data = self.parse_combined_data().map_err(|e| {
+            error!("{LAUNCHER} - {e}");
+            e
+        })?;
 
         if shortcut_data.is_empty() {
             warn_no_games!();

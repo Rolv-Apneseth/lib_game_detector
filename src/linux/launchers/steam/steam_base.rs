@@ -109,6 +109,53 @@ impl SteamLibrary<'_> {
             .collect())
     }
 
+    /// Get the box art for a specific game, checking several different potential locations.
+    #[tracing::instrument(level = "trace")]
+    fn get_box_art(&self, app_id: &str) -> Option<PathBuf> {
+        const FILENAME_1: &str = "library_600x900.jpg";
+        const FILENAME_2: &str = "library_capsule.jpg";
+
+        // Old library cache structure 2.
+        let mut path = some_if_file(
+            self.path_steam_dir
+                .join(format!("appcache/librarycache/{app_id}_{FILENAME_1}")),
+        );
+
+        // In the new structure, the file is not in the root `librarycache` dir, but rather in
+        // a dir named after the `app_id`.
+        if path.is_none() {
+            path = some_if_file(
+                self.path_steam_dir
+                    .join(format!("appcache/librarycache/{app_id}/{FILENAME_1}")),
+            );
+        }
+
+        // It can also appear in any sub-dir within that `app_id` dir, but we check the
+        // above, non-nested path first to save time.
+        if path.is_none() {
+            path = WalkDir::new(
+                self.path_steam_dir
+                    .join(format!("appcache/librarycache/{app_id}")),
+            )
+            .min_depth(2)
+            .max_depth(2)
+            .contents_first(true)
+            .into_iter()
+            .find_map(|res| {
+                let dir_entry = res.ok()?;
+                let file_name = dir_entry.file_name().to_str()?;
+
+                if file_name == FILENAME_1 || file_name == FILENAME_2 {
+                    Some(dir_entry.path().to_owned())
+                } else {
+                    None
+                }
+            });
+        }
+
+        path
+    }
+
     /// Returns a new Game from the given path to a steam app manifest file (`appmanifest_.*.acf`)
     #[tracing::instrument(level = "trace")]
     fn get_game(&self, path_app_manifest: &PathBuf) -> Option<Game> {
@@ -135,47 +182,7 @@ impl SteamLibrary<'_> {
                 .join(install_dir_path),
         );
 
-        let path_box_art = {
-            let box_art_file_name = "library_600x900.jpg";
-
-            // Old library cache structure
-            let mut path = some_if_file(self.path_steam_dir.join(format!(
-                "appcache/librarycache/{app_id}_{box_art_file_name}"
-            )));
-
-            // In the new structure, the file is not in the root `librarycache` dir, but rather in
-            // a dir named after the `app_id`.
-            if path.is_none() {
-                path = some_if_file(self.path_steam_dir.join(format!(
-                    "appcache/librarycache/{app_id}/{box_art_file_name}"
-                )));
-            }
-
-            // It can also appear in any sub-dir within that `app_id` dir, but we check the
-            // above, non-nested path first to save time.
-            if path.is_none() {
-                path = WalkDir::new(
-                    self.path_steam_dir
-                        .join(format!("appcache/librarycache/{app_id}")),
-                )
-                .min_depth(2)
-                .max_depth(2)
-                .contents_first(true)
-                .into_iter()
-                .find_map(|res| {
-                    let dir_entry = res.ok()?;
-                    let file_name = dir_entry.file_name().to_str()?;
-
-                    if file_name == box_art_file_name {
-                        Some(dir_entry.path().to_owned())
-                    } else {
-                        None
-                    }
-                });
-            }
-
-            path
-        };
+        let path_box_art = self.get_box_art(&app_id);
 
         trace!("{LAUNCHER} - Game directory found for '{title}': {path_game_dir:?}");
         trace!("{LAUNCHER} - Box art found for '{title}': {path_box_art:?}");
@@ -361,7 +368,7 @@ mod tests {
         let mut games = [libraries[0].get_all_games()?, libraries[1].get_all_games()?];
 
         assert_eq!(games[0].len(), 3);
-        assert_eq!(games[1].len(), 2);
+        assert_eq!(games[1].len(), 3);
 
         games[0].sort_by_key(|a| a.title.clone());
         games[1].sort_by_key(|a| a.title.clone());
@@ -369,8 +376,9 @@ mod tests {
         assert_eq!(games[0][0].title, "Sid Meier's Civilization V");
         assert_eq!(games[0][1].title, "Unrailed!");
         assert_eq!(games[0][2].title, "Warhammer 40,000: Speed Freeks");
-        assert_eq!(games[1][0].title, "Terraria");
-        assert_eq!(games[1][1].title, "Timberborn");
+        assert_eq!(games[1][0].title, "Marvel Rivals");
+        assert_eq!(games[1][1].title, "Terraria");
+        assert_eq!(games[1][2].title, "Timberborn");
 
         assert!(games[0][2].path_box_art.as_ref().is_some_and(|p| p
             .file_name()

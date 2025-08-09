@@ -250,7 +250,7 @@ impl Steam {
 
     /// Get all available steam libraries by parsing the `libraryfolders.vdf` file
     #[tracing::instrument(level = "trace")]
-    pub fn get_steam_libraries(&self) -> Result<Vec<SteamLibrary>, io::Error> {
+    pub fn get_steam_libraries(&self) -> Result<Vec<SteamLibrary<'_>>, io::Error> {
         let libraries_vdg_path =
             get_path_steamapps_dir(&self.path_steam_dir).join("libraryfolders.vdf");
 

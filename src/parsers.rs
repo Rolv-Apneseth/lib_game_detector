@@ -68,7 +68,7 @@ pub fn parse_value_json<'a>(file_content: &'a str, key: &'a str) -> IResult<&'a 
     let (file_content, value) =
         preceded(parse_not_double_quote, parse_between_double_quotes).parse(file_content)?;
 
-    Ok((file_content, value.to_string()))
+    Ok((file_content, value.to_owned()))
 }
 
 /// Find the next occurrence of a key in a `.json` file and returns the matching value (unquoted)
@@ -82,7 +82,7 @@ pub fn parse_value_json_unquoted<'a>(
 
     let (file_content, value) = preceded(parse_not_alphanumeric, alpha1).parse(file_content)?;
 
-    Ok((file_content, value.to_string()))
+    Ok((file_content, value.to_owned()))
 }
 
 /// Find the next occurrence of a key in a `.yml` file and returns the matching value
@@ -95,7 +95,7 @@ pub fn parse_value_yml<'a>(file_content: &'a str, key: &'a str) -> IResult<&'a s
     let (file_content, value) =
         preceded(parse_not_alphanumeric, parse_till_end_of_line).parse(file_content)?;
 
-    Ok((file_content, value.to_string()))
+    Ok((file_content, value.to_owned()))
 }
 
 /// Find the next occurrence of a key in a `.cfg` file and returns the matching value
@@ -106,7 +106,7 @@ pub fn parse_value_cfg<'a>(file_content: &'a str, key: &'a str) -> IResult<&'a s
 
     let (file_content, value) = parse_till_end_of_line(file_content)?;
 
-    Ok((file_content, value.to_string()))
+    Ok((file_content, value.to_owned()))
 }
 
 #[cfg(test)]

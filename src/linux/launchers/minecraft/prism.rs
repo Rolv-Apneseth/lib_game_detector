@@ -66,7 +66,7 @@ impl MinecraftPrism {
             path_instances = self.path_root.join(path_instances);
         }
 
-        return Ok((file_content, ParsableConfigData { path_instances }));
+        Ok((file_content, ParsableConfigData { path_instances }))
     }
 }
 

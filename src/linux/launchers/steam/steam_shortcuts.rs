@@ -135,7 +135,7 @@ fn get_parsable_shortcuts_data(
     Ok(shortcuts
         .into_iter()
         .map(|s| ParsableShortcutData {
-            title: s.app_name.to_string(),
+            title: s.app_name.to_owned(),
             box_art_id: s.app_id.to_string(),
         })
         .collect())
@@ -176,8 +176,8 @@ fn parse_screenshots_vdf<'a>(
         let (file_content, title) = parse_between_double_quotes(file_content)?;
 
         data.push(ParsableScreenshotData {
-            title: title.to_string(),
-            app_id: app_id.to_string(),
+            title: title.to_owned(),
+            app_id: app_id.to_owned(),
         });
 
         block = file_content;

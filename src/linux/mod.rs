@@ -84,9 +84,10 @@ impl GamesDetector for GamesDetectorLinux {
     fn get_all_detected_games_per_launcher(&self) -> GamesPerLauncher {
         self.get_detected_launchers()
             .into_iter()
-            .filter_map(|l| match l.get_detected_games() {
-                Ok(g) => Some((l.get_launcher_type(), g)),
-                Err(_) => {
+            .filter_map(|l| {
+                if let Ok(g) = l.get_detected_games() {
+                    Some((l.get_launcher_type(), g))
+                } else {
                     error!("Could not get games for launcher: {l:?}");
                     None
                 }

@@ -22,6 +22,6 @@ pub enum GamesParsingError {
 
 impl From<nom::Err<nom::error::Error<&str>>> for GamesParsingError {
     fn from(err: nom::Err<nom::error::Error<&str>>) -> Self {
-        Self::Nom(err.map_input(|input| input.into()))
+        Self::Nom(err.map_input(Into::into))
     }
 }

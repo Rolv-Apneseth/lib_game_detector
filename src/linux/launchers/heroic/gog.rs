@@ -135,16 +135,17 @@ impl Launcher for HeroicGOG {
                 trace!("{LAUNCHER} - launch command for '{title}': {launch_command:?}");
 
                 let path_game_dir = some_if_dir(PathBuf::from(install_path));
-                let path_box_art = some_if_file(self.path_icons.join(format!("{app_id}.png")));
+                let path_icon = some_if_file(self.path_icons.join(format!("{app_id}.png")));
 
-                trace!("{LAUNCHER} - Game directory found for '{title}': {path_game_dir:?}");
-                trace!("{LAUNCHER} - Box art found for '{title}': {path_box_art:?}");
+                trace!("{LAUNCHER} - Game directory for '{title}': {path_game_dir:?}");
+                trace!("{LAUNCHER} - Icon for '{title}': {path_icon:?}");
 
                 Game {
                     title,
                     launch_command,
-                    path_box_art,
                     path_game_dir,
+                    path_icon,
+                    path_box_art: None,
                 }
             })
             .collect())
@@ -183,8 +184,10 @@ mod tests {
         assert!(games[0].path_game_dir.is_some());
         assert!(games[1].path_game_dir.is_none());
 
-        assert!(games[0].path_box_art.is_none());
-        assert!(games[1].path_box_art.is_some());
+        assert!(games[0].path_icon.is_none());
+        assert!(games[1].path_icon.is_some());
+
+        assert!(games.iter().all(|g| g.path_box_art.is_none()));
 
         Ok(())
     }

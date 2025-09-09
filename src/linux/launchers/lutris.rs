@@ -1,3 +1,8 @@
+// PATHS:
+// - ~/.local/share/lutris/
+// - ~/.config/lutris/
+// - ~/.cache/lutris/
+// - Flatpak: ~/.var/app/net.lutris.Lutris/
 use std::{
     fs::{read_dir, read_to_string, File},
     io::{self, BufRead, BufReader},
@@ -169,6 +174,7 @@ fn parse_game_yml<'a>(
 pub struct Lutris {
     path_games_dir: PathBuf,
     path_box_art_dir: PathBuf,
+    path_icons_dir: PathBuf,
     path_game_paths_json: PathBuf,
     is_using_flatpak: bool,
 }
@@ -178,6 +184,7 @@ impl Lutris {
         let mut path_config_lutris = path_config.join("lutris");
         let mut path_cache_lutris = path_cache.join("lutris");
         let mut path_box_art_dir = path_cache_lutris.join("coverart");
+        let mut path_icons_dir = path_data.join("icons/hicolor/128x128/apps");
         let path_data_lutris = path_data.join("lutris");
 
         // Check for flatpak only if multiple dirs don't exist, and use fallbacks if only the
@@ -190,9 +197,10 @@ impl Lutris {
 
             is_using_flatpak = true;
             let path_flatpak = path_home.join(".var/app/net.lutris.Lutris");
-            path_config_lutris = path_flatpak.join("data/lutris");
             path_cache_lutris = path_flatpak.join("cache/lutris");
+            path_config_lutris = path_flatpak.join("data/lutris");
             path_box_art_dir = path_flatpak.join("data/lutris/coverart");
+            path_icons_dir = path_flatpak.join("data/icons/hicolor/128x128/apps");
         }
 
         let path_game_paths_json = path_cache_lutris.join("game-paths.json");
@@ -213,11 +221,13 @@ impl Lutris {
 
         debug_path!("games directory", path_games_dir);
         debug_path!("box art directory", path_box_art_dir);
+        debug_path!("icons directory", path_icons_dir);
         debug_path!("game paths JSON file", path_game_paths_json);
 
         Lutris {
             path_games_dir,
             path_box_art_dir,
+            path_icons_dir,
             path_game_paths_json,
             is_using_flatpak,
         }
@@ -359,26 +369,41 @@ impl Launcher for Lutris {
 
                     trace!("{LAUNCHER} - launch_command: {launch_command:?}");
 
-                    let path_box_art = {
-                        let mut path = None;
+                    let (path_box_art, path_icon) = {
+                        let (mut box_art, mut icon) = (None, None);
                         // First, check if a file name using the game_slug exists
                         if let Some(s) = game_slug {
-                            path = get_existing_image_path(&self.path_box_art_dir, s);
+                            box_art = get_existing_image_path(&self.path_box_art_dir, s);
+                            icon = get_existing_image_path(
+                                &self.path_icons_dir,
+                                format!("lutris_{s}"),
+                            );
                         }
                         // Otherwise, fallback to using the slug
-                        path.or_else(|| get_existing_image_path(&self.path_box_art_dir, slug))
+                        (
+                            box_art
+                                .or_else(|| get_existing_image_path(&self.path_box_art_dir, slug)),
+                            icon.or_else(|| {
+                                get_existing_image_path(
+                                    &self.path_icons_dir,
+                                    format!("lutris_{slug}"),
+                                )
+                            }),
+                        )
                     };
 
                     let path_game_dir = some_if_dir(PathBuf::from(game_dir));
 
-                    trace!("{LAUNCHER} - Game directory found for '{title}': {path_game_dir:?}");
-                    trace!("{LAUNCHER} - Box art found for '{title}': {path_box_art:?}");
+                    trace!("{LAUNCHER} - Game directory for '{title}': {path_game_dir:?}");
+                    trace!("{LAUNCHER} - Box art for '{title}': {path_box_art:?}");
+                    trace!("{LAUNCHER} - Icon for '{title}': {path_icon:?}");
 
                     Game {
                         title: clean_game_title(title),
                         launch_command,
                         path_box_art,
                         path_game_dir,
+                        path_icon,
                     }
                 },
             )
@@ -432,6 +457,12 @@ mod tests {
         assert!(games[2].path_box_art.is_some());
         assert!(games[3].path_box_art.is_some());
         assert!(games[4].path_box_art.is_some());
+
+        assert!(games[0].path_icon.is_none());
+        assert!(games[1].path_icon.is_none());
+        assert!(games[2].path_icon.is_none());
+        assert!(games[3].path_icon.is_some());
+        assert!(games[4].path_icon.is_none());
 
         Ok(())
     }

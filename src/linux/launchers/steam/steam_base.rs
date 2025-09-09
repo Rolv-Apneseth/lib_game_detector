@@ -1,14 +1,16 @@
+// PATHS:
+// - ~/.local/share/Steam/
+// - Flatpak: ~/.var/app/com.valvesoftware.Steam
+use nom::{
+    bytes::complete::{tag, take_till},
+    sequence::delimited,
+    AsChar, IResult, Parser,
+};
 use std::{
     fs::{read_dir, read_to_string, File},
     io::{self, BufRead, BufReader},
     path::{Path, PathBuf},
     sync::Arc,
-};
-
-use nom::{
-    bytes::complete::{tag, take_till},
-    sequence::delimited,
-    AsChar, IResult, Parser,
 };
 use tracing::{debug, error, trace, warn};
 use walkdir::WalkDir;
@@ -111,49 +113,49 @@ impl SteamLibrary<'_> {
 
     /// Get the box art for a specific game, checking several different potential locations.
     #[tracing::instrument(level = "trace")]
-    fn get_box_art(&self, app_id: &str) -> Option<PathBuf> {
+    fn get_images(&self, app_id: &str) -> (Option<PathBuf>, Option<PathBuf>) {
         const FILENAME_1: &str = "library_600x900.jpg";
         const FILENAME_2: &str = "library_capsule.jpg";
+        const ICON_FILENAME_LEN: usize = 44;
 
-        // Old library cache structure 2.
-        let mut path = some_if_file(
+        // Old library cache structure
+        let mut path_box_art = some_if_file(
             self.path_steam_dir
                 .join(format!("appcache/librarycache/{app_id}_{FILENAME_1}")),
         );
+        let mut path_icon = some_if_file(
+            self.path_steam_dir
+                .join(format!("appcache/librarycache/{app_id}_icon.jpg")),
+        );
 
-        // In the new structure, the file is not in the root `librarycache` dir, but rather in
-        // a dir named after the `app_id`.
-        if path.is_none() {
-            path = some_if_file(
-                self.path_steam_dir
-                    .join(format!("appcache/librarycache/{app_id}/{FILENAME_1}")),
-            );
+        // In newer structures, icons and box art can appear in any sub-dir within the `app_id` dir
+        for res in WalkDir::new(
+            self.path_steam_dir
+                .join(format!("appcache/librarycache/{app_id}")),
+        )
+        .min_depth(1)
+        .max_depth(2)
+        .contents_first(true)
+        {
+            let Ok(dir_entry) = res else {
+                continue;
+            };
+
+            let Some(filename) = dir_entry.file_name().to_str() else {
+                continue;
+            };
+
+            if filename == FILENAME_1 || filename == FILENAME_2 {
+                path_box_art = Some(dir_entry.path().to_owned());
+            }
+            // Not sure how else to parse these, as I can't find them mentioned anywhere.
+            // The filenames look like: a4c7a8cce43d797c275aaf601d6855b90ba87769.jpg
+            else if filename.len() == ICON_FILENAME_LEN && filename.ends_with(".jpg") {
+                path_icon = Some(dir_entry.path().to_owned());
+            }
         }
 
-        // It can also appear in any sub-dir within that `app_id` dir, but we check the
-        // above, non-nested path first to save time.
-        if path.is_none() {
-            path = WalkDir::new(
-                self.path_steam_dir
-                    .join(format!("appcache/librarycache/{app_id}")),
-            )
-            .min_depth(2)
-            .max_depth(2)
-            .contents_first(true)
-            .into_iter()
-            .find_map(|res| {
-                let dir_entry = res.ok()?;
-                let file_name = dir_entry.file_name().to_str()?;
-
-                if file_name == FILENAME_1 || file_name == FILENAME_2 {
-                    Some(dir_entry.path().to_owned())
-                } else {
-                    None
-                }
-            });
-        }
-
-        path
+        (path_box_art, path_icon)
     }
 
     /// Returns a new Game from the given path to a steam app manifest file (`appmanifest_.*.acf`)
@@ -182,10 +184,11 @@ impl SteamLibrary<'_> {
                 .join(install_dir_path),
         );
 
-        let path_box_art = self.get_box_art(&app_id);
+        let (path_box_art, path_icon) = self.get_images(&app_id);
 
-        trace!("{LAUNCHER} - Game directory found for '{title}': {path_game_dir:?}");
-        trace!("{LAUNCHER} - Box art found for '{title}': {path_box_art:?}");
+        trace!("{LAUNCHER} - Game directory for '{title}': {path_game_dir:?}");
+        trace!("{LAUNCHER} - Box art for '{title}': {path_box_art:?}");
+        trace!("{LAUNCHER} - Icon for '{title}': {path_icon:?}");
 
         // Skip entries without box art as they are not games (runtimes, redistributables, DLC, etc.),
         // at least as far as I know
@@ -199,6 +202,7 @@ impl SteamLibrary<'_> {
             launch_command,
             path_box_art,
             path_game_dir,
+            path_icon,
         })
     }
 
@@ -379,6 +383,13 @@ mod tests {
         assert_eq!(games[1][0].title, "Marvel Rivals");
         assert_eq!(games[1][1].title, "Terraria");
         assert_eq!(games[1][2].title, "Timberborn");
+
+        assert!(games[0][0].path_icon.is_some());
+        assert!(games[0][1].path_icon.is_none());
+        assert!(games[0][2].path_icon.is_some());
+        assert!(games[1][0].path_icon.is_none());
+        assert!(games[1][1].path_icon.is_none());
+        assert!(games[1][2].path_icon.is_none());
 
         assert!(games[0][2].path_box_art.as_ref().is_some_and(|p| p
             .file_name()

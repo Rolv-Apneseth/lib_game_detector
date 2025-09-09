@@ -1,3 +1,6 @@
+// PATHS:
+// - ~/.local/share/bottles/
+// - Flatpak: ~/.var/app/com.usebottles.bottles/data/bottles/
 use std::{
     fs::{read_dir, read_to_string},
     io,
@@ -28,6 +31,7 @@ use crate::{
 pub struct ParsableLibraryData {
     id: String,
     title: String,
+    icon: Option<PathBuf>,
     box_art: Option<String>,
     bottle_name: String,
     bottle_subdir: String,
@@ -42,6 +46,7 @@ pub struct ParsableBottleYmlData {
 #[derive(Debug)]
 pub struct ParsableDataCombined {
     title: String,
+    path_icon: Option<PathBuf>,
     box_art: Option<String>,
     bottle_name: String,
     bottle_subdir: String,
@@ -52,6 +57,7 @@ impl ParsableDataCombined {
     fn combine(library_data: ParsableLibraryData, bottle_data: ParsableBottleYmlData) -> Self {
         ParsableDataCombined {
             title: library_data.title,
+            path_icon: library_data.icon,
             box_art: library_data.box_art,
             bottle_subdir: library_data.bottle_subdir,
             bottle_name: library_data.bottle_name,
@@ -112,6 +118,22 @@ fn parse_game_from_library<'a>(file_content: &'a str) -> IResult<&'a str, Parsab
     let (file_content, _) = parse_until_key_yml(file_content, key_bottle_subdir)?;
     let (file_content, bottle_subdir) = parse_value_yml(file_content, key_bottle_subdir)?;
 
+    // ICON
+    let key_icon = "icon";
+    let (file_content, _) = parse_until_key_yml(file_content, key_icon)?;
+    let (file_content, _) = tag(format!("{key_icon}: ").as_str()).parse(file_content)?;
+    let (mut file_content, line1) = parse_till_end_of_line(file_content)?;
+    file_content = file_content.trim_start();
+
+    let (next_file_content, line2) = parse_till_end_of_line(file_content)?;
+    let (file_content, icon_str) = if line2.contains("id:") {
+        (file_content, line1.to_owned())
+    } else {
+        (next_file_content, [line1, line2].join(" "))
+    };
+    let icon_path = PathBuf::from(icon_str);
+    let icon = icon_path.is_file().then_some(icon_path);
+
     // ID
     let key_id = "id";
     let (file_content, _) = parse_until_key_yml(file_content, key_id)?;
@@ -143,6 +165,7 @@ fn parse_game_from_library<'a>(file_content: &'a str) -> IResult<&'a str, Parsab
             bottle_subdir,
             bottle_name,
             box_art,
+            icon,
         },
     ))
 }
@@ -257,7 +280,7 @@ impl Bottles {
     /// Get all relevant game data by combining data from the `library.yml` file and
     /// each bottle's `.yml` file. Data is matched using game ID.
     #[tracing::instrument]
-    pub fn parse_game_data(&self) -> Result<Arc<[ParsableDataCombined]>, io::Error> {
+    pub fn parse_game_data(&self) -> Result<Vec<ParsableDataCombined>, io::Error> {
         let parsed_library_data = self.parse_bottles_library()?;
         let parsed_bottles_data = self.parse_all_bottles()?;
 
@@ -293,17 +316,18 @@ impl Launcher for Bottles {
         }
 
         Ok(parsed_data
-            .iter()
+            .into_iter()
             .map(
                 |ParsableDataCombined {
                      title,
+                     path_icon,
                      box_art,
                      bottle_name,
                      bottle_subdir,
                      game_dir,
                  }| {
                     let launch_command = {
-                        let base_args = ["run", "-p", title, "-b", bottle_name];
+                        let base_args = ["run", "-p", &title, "-b", &bottle_name];
                         if self.is_using_flatpak {
                             get_launch_command_flatpak(
                                 "com.usebottles.bottles",
@@ -326,11 +350,13 @@ impl Launcher for Bottles {
 
                     let path_game_dir = some_if_dir(PathBuf::from(game_dir));
 
-                    trace!("{LAUNCHER} - Game directory found for '{title}': {path_game_dir:?}");
-                    trace!("{LAUNCHER} - Box art found for '{title}': {path_box_art:?}");
+                    trace!("{LAUNCHER} - Game directory for '{title}': {path_game_dir:?}");
+                    trace!("{LAUNCHER} - Box art for '{title}': {path_box_art:?}");
+                    trace!("{LAUNCHER} - Icon for '{title}': {path_icon:?}");
 
                     Game {
                         title: clean_game_title(title),
+                        path_icon,
                         launch_command,
                         path_box_art,
                         path_game_dir,
@@ -380,6 +406,11 @@ mod tests {
         assert!(games[1].path_box_art.is_some());
         assert!(games[2].path_box_art.is_some());
         assert!(games[3].path_box_art.is_none());
+
+        // TODO: test icons - need some way to write correct paths in test `library.yml` file
+        for g in games {
+            assert!(g.path_icon.is_none());
+        }
 
         Ok(())
     }

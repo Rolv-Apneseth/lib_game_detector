@@ -1,3 +1,5 @@
+// PATHS:
+// - ~/.local/share/PrismLauncher/
 use std::{
     fs::{read_dir, read_to_string},
     path::{Path, PathBuf},
@@ -11,7 +13,7 @@ use crate::{
     linux::launchers::minecraft::get_minecraft_title,
     macros::logs::{debug_fallback_flatpak, debug_path, warn_no_games},
     parsers::{parse_until_key_cfg, parse_value_cfg},
-    utils::{get_launch_command, get_launch_command_flatpak, some_if_dir},
+    utils::{get_launch_command, get_launch_command_flatpak, some_if_dir, some_if_file},
 };
 
 const LAUNCHER: SupportedLaunchers = SupportedLaunchers::MinecraftPrism;
@@ -115,17 +117,19 @@ impl Launcher for MinecraftPrism {
                 trace!("{LAUNCHER} - launch command for '{title}': {launch_command:?}");
 
                 let path_game_dir = some_if_dir(path_instances.join(&title));
+                let path_icon = get_path_icon(path_game_dir.as_ref());
                 // No box art provided
                 let path_box_art = None;
 
-                trace!("{LAUNCHER} - Game directory found for '{title}': {path_game_dir:?}");
-                trace!("{LAUNCHER} - Box art found for '{title}': {path_box_art:?}");
+                trace!("{LAUNCHER} - Game directory for '{title}': {path_game_dir:?}");
+                trace!("{LAUNCHER} - Icon for '{title}': {path_icon:?}");
 
                 Game {
                     title: get_minecraft_title(&title),
                     launch_command,
                     path_box_art,
                     path_game_dir,
+                    path_icon,
                 }
             })
             .collect();
@@ -136,6 +140,14 @@ impl Launcher for MinecraftPrism {
 
         Ok(games)
     }
+}
+
+fn get_path_icon(path_instance: Option<&PathBuf>) -> Option<PathBuf> {
+    let path_instance = path_instance?;
+
+    some_if_file(path_instance.join("icon.png"))
+        .or_else(|| some_if_file(path_instance.join("minecraft").join("icon.png")))
+        .or_else(|| some_if_file(path_instance.join(".minecraft").join("icon.png")))
 }
 
 #[cfg(test)]
@@ -160,17 +172,18 @@ mod tests {
         assert!(launcher.is_detected());
         assert!(launcher.is_using_flatpak == is_testing_flatpak);
 
-        let games = launcher.get_detected_games()?;
+        let mut games = launcher.get_detected_games()?;
+        games.sort_by_key(|a| a.title.clone());
 
-        dbg!(&games);
-        assert_eq!(games.len(), 2);
+        assert_eq!(games.len(), 3);
 
-        assert!(games
-            .iter()
-            .any(|g| g.title == get_minecraft_title("All The Forge 10")));
-        assert!(games
-            .iter()
-            .any(|g| g.title == get_minecraft_title("The Pixelmon Modpack")));
+        assert_eq!(games[0].title, get_minecraft_title("1.20.6"));
+        assert_eq!(games[1].title, get_minecraft_title("All The Forge 10"));
+        assert_eq!(games[2].title, get_minecraft_title("The Pixelmon Modpack"));
+
+        assert!(games[0].path_icon.is_none());
+        assert!(games[1].path_icon.as_ref().is_some_and(|p| p.is_file()));
+        assert!(games[2].path_icon.as_ref().is_some_and(|p| p.is_file()));
 
         assert!(games.iter().all(|g| g.path_game_dir.is_some()));
         assert!(games.iter().all(|g| g.path_box_art.is_none()));

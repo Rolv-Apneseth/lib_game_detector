@@ -26,6 +26,7 @@ use crate::{
 /// Data parseable from a Steam user's `shortcuts.vdf`
 #[derive(Debug, Clone, Default)]
 pub struct ParsableShortcutData {
+    icon: String,
     box_art_id: String,
     title: String,
 }
@@ -43,6 +44,7 @@ pub struct ParsableDataCombined {
     title: String,
     app_id: String,
     path_box_art: Option<PathBuf>,
+    path_icon: Option<PathBuf>,
 }
 impl ParsableDataCombined {
     fn combine(
@@ -56,10 +58,19 @@ impl ParsableDataCombined {
             get_existing_image_path(path_box_art_dir, format!("{}p", shortcut_data.box_art_id))
                 .or_else(|| get_existing_image_path(path_box_art_dir, &shortcut_data.box_art_id));
 
+        let mut path_icon = None;
+        if !shortcut_data.icon.is_empty() {
+            let path = PathBuf::from(shortcut_data.icon);
+            if path.is_file() {
+                path_icon = Some(path);
+            }
+        }
+
         ParsableDataCombined {
             title: shortcut_data.title,
             app_id: screenshot_data.app_id,
             path_box_art,
+            path_icon,
         }
     }
 }
@@ -78,7 +89,7 @@ const LAUNCHER: SupportedLaunchers = SupportedLaunchers::SteamShortcuts;
 #[tracing::instrument(level = "trace")]
 fn find_userdata_files(
     path_steam_userdata_dir: &Path,
-) -> Result<Vec<UserDataFiles>, GamesParsingError> {
+) -> Result<impl Iterator<Item = UserDataFiles>, GamesParsingError> {
     Ok(read_dir(path_steam_userdata_dir)?
         .flatten()
         .filter_map(|p| {
@@ -122,7 +133,7 @@ fn find_userdata_files(
                 path_box_art_dir,
             })
         })
-        .collect())
+        )
 }
 
 #[tracing::instrument(level = "trace")]
@@ -137,6 +148,7 @@ fn get_parsable_shortcuts_data(
         .map(|s| ParsableShortcutData {
             title: s.app_name.to_owned(),
             box_art_id: s.app_id.to_string(),
+            icon: s.icon.to_owned(),
         })
         .collect())
 }
@@ -218,7 +230,6 @@ impl SteamShortcuts {
         let userdata_files = find_userdata_files(&self.path_steam_userdata_dir)?;
 
         userdata_files
-            .into_iter()
             .map(
                 |UserDataFiles {
                      path_shortcuts,
@@ -283,19 +294,22 @@ impl Launcher for SteamShortcuts {
                      app_id,
                      title,
                      path_box_art,
+                     path_icon,
                  }| {
                     let launch_command = get_steam_launch_command(app_id, self.is_using_flatpak);
                     let path_game_dir = None;
                     let title = clean_game_title(title);
 
-                    trace!("{LAUNCHER} - Game directory found for '{title}': {path_game_dir:?}");
-                    trace!("{LAUNCHER} - Box art found for '{title}': {path_box_art:?}");
+                    trace!("{LAUNCHER} - Game directory for '{title}': {path_game_dir:?}");
+                    trace!("{LAUNCHER} - Box art for '{title}': {path_box_art:?}");
+                    trace!("{LAUNCHER} - Icon for '{title}': {path_icon:?}");
 
                     Game {
                         title: clean_game_title(&title),
                         launch_command,
                         path_box_art,
                         path_game_dir,
+                        path_icon,
                     }
                 },
             )
@@ -339,6 +353,12 @@ mod tests {
         assert!(games[0].path_box_art.is_some());
         assert!(games[1].path_box_art.is_some());
         assert!(games[2].path_box_art.is_none());
+
+        // TODO: find a way to test icon path - need to write correct path to the dummy
+        // `shortcuts.vdf` file
+        assert!(games[0].path_icon.is_none());
+        assert!(games[1].path_icon.is_none());
+        assert!(games[2].path_icon.is_none());
 
         Ok(())
     }

@@ -1,3 +1,5 @@
+// PATHS:
+// - ~/.config/heroic/
 pub mod amazon;
 pub mod epic;
 pub mod gog;

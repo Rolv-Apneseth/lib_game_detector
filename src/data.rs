@@ -14,7 +14,9 @@ use crate::error::GamesParsingError;
 pub struct Game {
     /// Game title / name.
     pub title: String,
-    /// Path to the box art image for a game (if one was found).
+    /// Path to the game's icon (if one was found).
+    pub path_icon: Option<PathBuf>,
+    /// Path to the game's box art image (if one was found).
     pub path_box_art: Option<PathBuf>,
     /// Path to the game's root directory (if one was found).
     pub path_game_dir: Option<PathBuf>,

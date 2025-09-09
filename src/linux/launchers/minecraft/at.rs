@@ -1,3 +1,5 @@
+// PATHS:
+// - ~/.local/share/atlauncher/
 use std::{
     fs::{read_dir, read_to_string},
     path::{Path, PathBuf},
@@ -11,7 +13,7 @@ use crate::{
     linux::launchers::minecraft::get_minecraft_title,
     macros::logs::{debug_fallback_flatpak, debug_path, warn_no_games},
     parsers::parse_value_json,
-    utils::{get_launch_command, get_launch_command_flatpak, some_if_dir},
+    utils::{get_existing_image_path, get_launch_command, get_launch_command_flatpak, some_if_dir},
 };
 
 struct ParsableInstanceConfigData {
@@ -72,14 +74,15 @@ impl Launcher for MinecraftAT {
         let games: Vec<Game> = read_dir(&self.path_instances)?
             .flatten()
             .filter_map(|dir_entry| {
-                let config_path = dir_entry.path().join("instance.json");
+                let dir_path = dir_entry.path();
+                let config_path = dir_path.join("instance.json");
                 if !config_path.is_file() {
                     return None;
                 }
 
                 if let Ok(file_content) = read_to_string(&config_path) {
                     if let Ok((_, parsed_data)) = parse_instance_config(&file_content) {
-                        return Some((dir_entry.path(), parsed_data));
+                        return Some((dir_path, parsed_data));
                     };
                 };
 
@@ -97,19 +100,21 @@ impl Launcher for MinecraftAT {
                 };
                 trace!("{LAUNCHER} - launch command for '{title}': {launch_command:?}");
 
-                let path_game_dir = some_if_dir(instance_path);
-
                 // No box art provided
                 let path_box_art = None;
 
-                trace!("{LAUNCHER} - Game directory found for '{title}': {path_game_dir:?}");
-                trace!("{LAUNCHER} - Box art found for '{title}': {path_box_art:?}");
+                let path_icon = get_existing_image_path(&instance_path, "instance");
+                let path_game_dir = some_if_dir(instance_path);
+
+                trace!("{LAUNCHER} - Game directory for '{title}': {path_game_dir:?}");
+                trace!("{LAUNCHER} - Icon for '{title}': {path_icon:?}");
 
                 Game {
                     title: get_minecraft_title(&title),
                     launch_command,
                     path_box_art,
                     path_game_dir,
+                    path_icon,
                 }
             })
             .collect();
@@ -144,17 +149,16 @@ mod tests {
         assert!(launcher.is_detected());
         assert!(launcher.is_using_flatpak == is_testing_flatpak);
 
-        let games = launcher.get_detected_games()?;
+        let mut games = launcher.get_detected_games()?;
+        games.sort_by_key(|a| a.title.clone());
 
-        dbg!(&games);
         assert_eq!(games.len(), 2);
 
-        assert!(games
-            .iter()
-            .any(|g| g.title == get_minecraft_title("Sky Factory")));
-        assert!(games
-            .iter()
-            .any(|g| g.title == get_minecraft_title("Fabulously Optimized")));
+        assert_eq!(games[0].title, get_minecraft_title("Fabulously Optimized"));
+        assert_eq!(games[1].title, get_minecraft_title("Sky Factory"));
+
+        assert!(games[0].path_icon.as_ref().is_some_and(|p| p.is_file()));
+        assert!(games[1].path_icon.is_none());
 
         assert!(games.iter().all(|g| g.path_game_dir.is_some()));
         assert!(games.iter().all(|g| g.path_box_art.is_none()));

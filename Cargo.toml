@@ -1,6 +1,6 @@
 [package]
 name = "lib_game_detector"
-version = "0.0.21"
+version = "0.0.22"
 edition = "2021"
 description = "A Rust library for detecting and parsing data about games installed on the system"
 readme = "README.md"
@@ -9,21 +9,21 @@ license = "AGPL-3.0"
 rust-version = "1.78.0"
 
 [dependencies]
-dirs = "6.0.0"
-tracing = "0.1.40"
-nom = "8.0.0"
-cfg-if = "1.0.0"
-itertools = "0.14.0"
-thiserror = "2.0.3"
-steam_shortcuts_util = "1.1.8"
-walkdir = "2.5.0"
+dirs = "6.0"
+tracing = "0.1"
+nom = "8.0"
+cfg-if = "1.0"
+itertools = "0.14"
+thiserror = "2.0"
+steam_shortcuts_util = "1.1"
+walkdir = "2.5"
 
 [dev-dependencies]
-criterion = { version = "0.5.1", features = ["html_reports"] }
-divan = "0.1.14"
-is-terminal = "0.4.16"
-test-case = "3.3.1"
-tracing-subscriber = { version = "0.3.*", features = ["env-filter"] }
+criterion = { version = "0.5", features = ["html_reports"] }
+divan = "0.1"
+is-terminal = "0.4"
+test-case = "3.3"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 [[bench]]
 name = "criterion"

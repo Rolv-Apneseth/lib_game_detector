@@ -36,7 +36,7 @@ where
 }
 
 /// Data structure representing a supported games source
-#[derive(PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum SupportedLaunchers {
     /// Regular Steam games
     Steam,

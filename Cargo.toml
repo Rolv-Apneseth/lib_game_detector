@@ -17,6 +17,7 @@ itertools = "0.14"
 thiserror = "2.0"
 steam_shortcuts_util = "1.1"
 walkdir = "2.5"
+serde = { version = "1.0", features = ["derive"] }
 
 [dev-dependencies]
 criterion = { version = "0.7", features = ["html_reports"] }

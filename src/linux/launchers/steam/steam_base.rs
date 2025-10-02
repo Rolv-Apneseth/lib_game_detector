@@ -1,16 +1,17 @@
 // PATHS:
 // - ~/.local/share/Steam/
 // - Flatpak: ~/.var/app/com.valvesoftware.Steam
-use nom::{
-    bytes::complete::{tag, take_till},
-    sequence::delimited,
-    AsChar, IResult, Parser,
-};
 use std::{
     fs::{read_dir, read_to_string, File},
     io::{self, BufRead, BufReader},
     path::{Path, PathBuf},
     sync::Arc,
+};
+
+use nom::{
+    bytes::complete::{tag, take_till},
+    sequence::delimited,
+    AsChar, IResult, Parser,
 };
 use tracing::{debug, error, trace, warn};
 use walkdir::WalkDir;

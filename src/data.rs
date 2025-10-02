@@ -7,10 +7,12 @@ use std::{
     sync::Arc,
 };
 
+use serde::{Serialize, Serializer};
+
 use crate::error::GamesParsingError;
 
 /// Data structure which defines all relevant data about any particular game
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct Game {
     /// Game title / name.
     pub title: String,
@@ -21,11 +23,20 @@ pub struct Game {
     /// Path to the game's root directory (if one was found).
     pub path_game_dir: Option<PathBuf>,
     /// Command to launch the game.
+    #[serde(serialize_with = "serialize_command")]
     pub launch_command: Command,
 }
 
+/// Serialize command into a string using the debug output (can be run with `sh -c "$cmd"`)
+fn serialize_command<S>(x: &Command, s: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    s.serialize_str(&format!("{x:?}"))
+}
+
 /// Data structure representing a supported games source
-#[derive(PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum SupportedLaunchers {
     /// Regular Steam games
     Steam,

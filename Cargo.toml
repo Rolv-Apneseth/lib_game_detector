@@ -19,7 +19,7 @@ steam_shortcuts_util = "1.1"
 walkdir = "2.5"
 
 [dev-dependencies]
-criterion = { version = "0.5", features = ["html_reports"] }
+criterion = { version = "0.7", features = ["html_reports"] }
 divan = "0.1"
 is-terminal = "0.4"
 test-case = "3.3"

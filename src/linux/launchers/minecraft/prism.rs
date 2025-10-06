@@ -130,6 +130,7 @@ impl Launcher for MinecraftPrism {
                     path_box_art,
                     path_game_dir,
                     path_icon,
+                    source: LAUNCHER.clone(),
                 }
             })
             .collect();

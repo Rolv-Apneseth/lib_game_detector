@@ -310,6 +310,7 @@ impl Launcher for SteamShortcuts {
                         path_box_art,
                         path_game_dir,
                         path_icon,
+                        source: LAUNCHER.clone(),
                     }
                 },
             )

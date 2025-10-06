@@ -11,6 +11,15 @@ use serde::{Serialize, Serializer};
 
 use crate::error::GamesParsingError;
 
+/// Serialize a type into a string using the debug output
+fn serialize_debug<S, T>(x: &T, s: S) -> Result<S::Ok, S::Error>
+where
+    T: Debug,
+    S: Serializer,
+{
+    s.serialize_str(&format!("{x:?}"))
+}
+
 /// Data structure which defines all relevant data about any particular game
 #[derive(Debug, Serialize)]
 pub struct Game {
@@ -23,16 +32,12 @@ pub struct Game {
     /// Path to the game's root directory (if one was found).
     pub path_game_dir: Option<PathBuf>,
     /// Command to launch the game.
-    #[serde(serialize_with = "serialize_command")]
+    // NOTE: serialized output can be `sh -c "$launch_command"`
+    #[serde(serialize_with = "serialize_debug")]
     pub launch_command: Command,
-}
-
-/// Serialize command into a string using the debug output (can be run with `sh -c "$cmd"`)
-fn serialize_command<S>(x: &Command, s: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    s.serialize_str(&format!("{x:?}"))
+    /// Game detection source.
+    #[serde(serialize_with = "serialize_debug")]
+    pub source: SupportedLaunchers,
 }
 
 /// Data structure representing a supported games source
@@ -78,8 +83,8 @@ impl Debug for SupportedLaunchers {
                 SupportedLaunchers::HeroicGamesSideload => "Heroic Games Launcher (Sideload)",
                 SupportedLaunchers::Lutris => "Lutris",
                 SupportedLaunchers::Bottles => "Bottles",
-                SupportedLaunchers::MinecraftPrism => "Minecraft (PrismLauncher)",
-                SupportedLaunchers::MinecraftAT => "Minecraft (ATLauncher)",
+                SupportedLaunchers::MinecraftPrism => "Prism Launcher",
+                SupportedLaunchers::MinecraftAT => "ATLauncher",
             }
         )
     }

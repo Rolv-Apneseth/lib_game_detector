@@ -104,6 +104,7 @@ impl Launcher for HeroicAmazon {
                     path_box_art,
                     path_game_dir,
                     path_icon: None,
+                    source: LAUNCHER.clone(),
                 }
             })
             .collect())

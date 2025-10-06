@@ -146,6 +146,7 @@ impl Launcher for HeroicGOG {
                     path_game_dir,
                     path_icon,
                     path_box_art: None,
+                    source: LAUNCHER.clone(),
                 }
             })
             .collect())

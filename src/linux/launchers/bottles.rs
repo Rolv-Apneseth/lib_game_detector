@@ -360,6 +360,7 @@ impl Launcher for Bottles {
                         launch_command,
                         path_box_art,
                         path_game_dir,
+                        source: LAUNCHER.clone(),
                     }
                 },
             )

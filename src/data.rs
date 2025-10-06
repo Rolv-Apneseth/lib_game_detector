@@ -83,8 +83,8 @@ impl Debug for SupportedLaunchers {
                 SupportedLaunchers::HeroicGamesSideload => "Heroic Games Launcher (Sideload)",
                 SupportedLaunchers::Lutris => "Lutris",
                 SupportedLaunchers::Bottles => "Bottles",
-                SupportedLaunchers::MinecraftPrism => "Minecraft (PrismLauncher)",
-                SupportedLaunchers::MinecraftAT => "Minecraft (ATLauncher)",
+                SupportedLaunchers::MinecraftPrism => "Prism Launcher",
+                SupportedLaunchers::MinecraftAT => "ATLauncher",
             }
         )
     }

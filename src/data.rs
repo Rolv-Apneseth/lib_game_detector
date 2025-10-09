@@ -7,11 +7,13 @@ use std::{
     sync::Arc,
 };
 
+#[cfg(feature = "serde")]
 use serde::{Serialize, Serializer};
 
 use crate::error::GamesParsingError;
 
 /// Serialize a type into a string using the debug output
+#[cfg(feature = "serde")]
 fn serialize_debug<S, T>(x: &T, s: S) -> Result<S::Ok, S::Error>
 where
     T: Debug,
@@ -21,7 +23,8 @@ where
 }
 
 /// Data structure which defines all relevant data about any particular game
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct Game {
     /// Game title / name.
     pub title: String,
@@ -31,12 +34,14 @@ pub struct Game {
     pub path_box_art: Option<PathBuf>,
     /// Path to the game's root directory (if one was found).
     pub path_game_dir: Option<PathBuf>,
+
     /// Command to launch the game.
     // NOTE: serialized output can be `sh -c "$launch_command"`
-    #[serde(serialize_with = "serialize_debug")]
+    #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_debug"))]
     pub launch_command: Command,
+
     /// Game detection source.
-    #[serde(serialize_with = "serialize_debug")]
+    #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_debug"))]
     pub source: SupportedLaunchers,
 }
 

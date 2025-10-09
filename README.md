@@ -26,6 +26,13 @@ Install with:
 cargo add lib_game_detector
 ```
 
+Support for serialization via `serde`, which is enabled by default, can be disabled
+by installing with:
+
+```sh
+cargo add lib_game_detector --no-default-features
+```
+
 ## Usage
 
 ```rust
@@ -40,7 +47,8 @@ let all_games_from_steam = detector.get_all_detected_games_from_specific_launche
 
 ## Examples
 
-- See [rofi-games](https://github.com/Rolv-Apneseth/rofi-games) for an example which uses this library to find games and their box art to use for displaying in a launcher
+- Checkout [rofi-games](https://github.com/Rolv-Apneseth/rofi-games) or [rgd](https://github.com/Rolv-Apneseth/rgd)
+  to see this library being used to find games and their box art for displaying in a launcher
 - Check the [examples folder](https://github.com/Rolv-Apneseth/lib_game_detector/tree/main/examples)
 
 ## Currently supported game sources

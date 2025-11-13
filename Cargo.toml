@@ -1,12 +1,12 @@
 [package]
 name = "lib_game_detector"
 version = "0.0.25"
-edition = "2021"
+edition = "2024"
 description = "A Rust library for detecting and parsing data about games installed on the system"
 readme = "README.md"
 repository = "https://github.com/rolv-apneseth/lib_game_detector/"
 license = "AGPL-3.0"
-rust-version = "1.80.0"
+rust-version = "1.85.0"
 
 [dependencies]
 dirs = "6.0"

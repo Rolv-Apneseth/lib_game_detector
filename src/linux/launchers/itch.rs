@@ -68,8 +68,10 @@ impl DbData {
 
         let (_, parsed_verdict) =
             ParsedVerdict::from_verdict_str(&row.caves_verdict).map_err(|e| {
-                tracing::error!("{LAUNCHER} - failed to parse verdict for '{title}': {e}");
-                tracing::error!("{LAUNCHER} - verdict for '{title}': {}", row.caves_verdict);
+                tracing::warn!(
+                    "{LAUNCHER} - failed to parse verdict for '{title}': {}",
+                    row.caves_verdict
+                );
                 e.to_owned()
             })?;
 

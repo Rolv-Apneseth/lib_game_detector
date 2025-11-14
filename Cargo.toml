@@ -44,3 +44,6 @@ harness = false
 default = ["serde", "bundled_sqlite"]
 serde = ["dep:serde"]
 bundled_sqlite = ["rusqlite/bundled"]
+
+[package.metadata.docs.rs]
+all-features = true

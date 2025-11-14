@@ -72,6 +72,7 @@
 #![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![warn(clippy::must_use_candidate)]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 use cfg_if::cfg_if;
 

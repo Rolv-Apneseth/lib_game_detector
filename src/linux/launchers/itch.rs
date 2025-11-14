@@ -8,7 +8,7 @@ use std::{
 
 use nom::IResult;
 use rusqlite::{OpenFlags, fallible_iterator::FallibleIterator, params};
-use tracing::error;
+use tracing::{error, trace, warn};
 
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
@@ -178,6 +178,13 @@ impl Launcher for Itch {
             .map(|r| DbRow::try_from(r))
             .collect::<Vec<DbRow>>()?;
 
+        if db_rows.is_empty() {
+            warn!(
+                "{LAUNCHER} - No games were parsed from the butler DB file at {:?}",
+                self.path_butler_db
+            )
+        };
+
         let db_data = db_rows
             .into_iter()
             .filter_map(|r| DbData::from_db_row(r).ok());
@@ -190,6 +197,10 @@ impl Launcher for Itch {
                      path_bin,
                      interpreter,
                  }| {
+                    trace!("{LAUNCHER} - Game directory for '{title}': {path_game_dir:?}");
+                    trace!("{LAUNCHER} - Binary path for '{title}': {path_bin:?}");
+                    trace!("{LAUNCHER} - Interpreter for '{title}': {interpreter:?}");
+
                     // TODO: itch CLI to launch game using cave ID, if the following PR gets
                     // merged: <https://github.com/itchio/itch/pull/3069>
                     let launch_command = if let Some(interpreter) = interpreter {

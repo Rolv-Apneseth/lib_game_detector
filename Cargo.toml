@@ -42,7 +42,7 @@ path = "benches/divan.rs"
 harness = false
 
 [features]
-default = ["serde", "bundled_sqlite"]
+default = ["serde"]
 serde = ["dep:serde"]
 bundled_sqlite = ["rusqlite/bundled"]
 

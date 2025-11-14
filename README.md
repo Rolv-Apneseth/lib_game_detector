@@ -63,6 +63,7 @@ let all_games_from_steam = detector.get_all_detected_games_from_specific_launche
   - Only lists entries included in the Library
 - Modded Minecraft (Prism Launcher, ATLauncher)
   - Titles are given as `Minecraft - {instance name}`
+- Itch (itch.io app)
 
 <!-- cargo-rdme end -->
 

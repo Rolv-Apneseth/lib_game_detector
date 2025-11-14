@@ -12,6 +12,8 @@ fn main() {
     dbg!(detector.get_all_detected_games());
     dbg!(detector.get_all_detected_games_per_launcher());
     dbg!(detector.get_all_detected_games_with_box_art());
-    dbg!(detector
-        .get_all_detected_games_from_specific_launcher(SupportedLaunchers::HeroicGamesAmazon));
+    dbg!(
+        detector
+            .get_all_detected_games_from_specific_launcher(SupportedLaunchers::HeroicGamesAmazon)
+    );
 }

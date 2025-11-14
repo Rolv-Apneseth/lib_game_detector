@@ -15,6 +15,10 @@ pub enum GamesParsingError {
     #[error(transparent)]
     Nom(#[from] nom::Err<nom::error::Error<String>>),
 
+    /// Error originating from [`rusqlite::Error`]
+    #[error(transparent)]
+    Db(#[from] rusqlite::Error),
+
     /// Error originating from any other source
     #[error("Other error: {0}")]
     Other(String),

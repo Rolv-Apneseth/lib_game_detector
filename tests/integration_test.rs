@@ -10,11 +10,13 @@ fn test_detector() -> Result<(), GamesParsingError> {
     assert!(!detector.get_all_detected_games_with_box_art().is_empty());
     assert!(!detector.get_all_detected_games_per_launcher().is_empty());
 
-    assert!(detector
-        .get_all_detected_games_from_specific_launcher(
-            lib_game_detector::data::SupportedLaunchers::Steam
-        )
-        .is_some());
+    assert!(
+        detector
+            .get_all_detected_games_from_specific_launcher(
+                lib_game_detector::data::SupportedLaunchers::Steam
+            )
+            .is_some()
+    );
 
     Ok(())
 }

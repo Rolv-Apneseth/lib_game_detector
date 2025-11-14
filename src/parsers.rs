@@ -1,8 +1,8 @@
 use nom::{
+    AsChar, IResult, Parser,
     bytes::complete::{is_not, tag, take_till, take_until},
     character::complete::{alpha1, char},
     sequence::{delimited, preceded},
-    AsChar, IResult, Parser,
 };
 // GENERAL ----------------------------------------------------------------------------------------
 pub fn parse_between_double_quotes(input: &str) -> IResult<&str, &str> {

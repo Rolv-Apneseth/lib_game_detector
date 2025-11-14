@@ -4,7 +4,7 @@
 // - ~/.cache/lutris/
 // - Flatpak: ~/.var/app/net.lutris.Lutris/
 use std::{
-    fs::{read_dir, read_to_string, File},
+    fs::{File, read_dir, read_to_string},
     io::{self, BufRead, BufReader},
     path::{Path, PathBuf},
     sync::Arc,

@@ -1,12 +1,12 @@
 [package]
 name = "lib_game_detector"
-version = "0.0.25"
-edition = "2021"
+version = "0.0.26"
+edition = "2024"
 description = "A Rust library for detecting and parsing data about games installed on the system"
 readme = "README.md"
 repository = "https://github.com/rolv-apneseth/lib_game_detector/"
 license = "AGPL-3.0"
-rust-version = "1.80.0"
+rust-version = "1.85.0"
 
 [dependencies]
 dirs = "6.0"
@@ -18,6 +18,7 @@ thiserror = "2.0"
 steam_shortcuts_util = "1.1"
 walkdir = "2.5"
 serde = { version = "1.0", features = ["derive"], optional = true }
+rusqlite = { version = "0.37" }
 
 [dev-dependencies]
 criterion = { version = "0.7", features = ["html_reports"] }
@@ -26,7 +27,8 @@ is-terminal = "0.4"
 test-case = "3.3"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 serde_json = { version = "1.0" }
-lib_game_detector = { path = ".", features = ["serde"] }
+lib_game_detector = { path = "." }
+pretty_assertions = { version = "1.4" }
 
 [[bench]]
 name = "criterion"
@@ -39,5 +41,6 @@ path = "benches/divan.rs"
 harness = false
 
 [features]
-default = ["serde"]
+default = ["serde", "bundled_sqlite"]
 serde = ["dep:serde"]
+bundled_sqlite = ["rusqlite/bundled"]

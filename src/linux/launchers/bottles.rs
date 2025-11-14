@@ -9,10 +9,10 @@ use std::{
 };
 
 use nom::{
+    IResult, Parser,
     bytes::complete::{is_not, tag, take_till},
     character::complete::multispace1,
     sequence::preceded,
-    IResult, Parser,
 };
 use tracing::{error, trace, warn};
 

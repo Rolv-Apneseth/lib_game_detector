@@ -59,6 +59,7 @@
 //!   - Only lists entries included in the Library
 //! - Modded Minecraft (Prism Launcher, ATLauncher)
 //!   - Titles are given as `Minecraft - {instance name}`
+//! - Itch (itch.io app)
 
 #![deny(missing_docs)]
 #![deny(missing_debug_implementations)]

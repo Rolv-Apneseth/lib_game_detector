@@ -7,3 +7,5 @@ Cargo.lock
 /target
 mutants*/
 **/dhat-heap.json
+*-shm
+*-wal

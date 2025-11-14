@@ -2,16 +2,16 @@
 // - ~/.local/share/Steam/
 // - Flatpak: ~/.var/app/com.valvesoftware.Steam
 use std::{
-    fs::{read_dir, read_to_string, File},
+    fs::{File, read_dir, read_to_string},
     io::{self, BufRead, BufReader},
     path::{Path, PathBuf},
     sync::Arc,
 };
 
 use nom::{
+    AsChar, IResult, Parser,
     bytes::complete::{tag, take_till},
     sequence::delimited,
-    AsChar, IResult, Parser,
 };
 use tracing::{debug, error, trace, warn};
 use walkdir::WalkDir;
@@ -302,8 +302,7 @@ impl Launcher for Steam {
                 let games = l.get_all_games();
                 trace!(
                     "{LAUNCHER} - games for library at {:?}: {:?}",
-                    l.path_library,
-                    games
+                    l.path_library, games
                 );
                 games
             })
@@ -393,9 +392,10 @@ mod tests {
         assert!(games[1][1].path_icon.is_none());
         assert!(games[1][2].path_icon.is_none());
 
-        assert!(games[0][2].path_box_art.as_ref().is_some_and(|p| p
-            .file_name()
-            .is_some_and(|f| f.to_string_lossy() == "library_600x900.jpg")));
+        assert!(games[0][2].path_box_art.as_ref().is_some_and(|p| {
+            p.file_name()
+                .is_some_and(|f| f.to_string_lossy() == "library_600x900.jpg")
+        }));
 
         games.into_iter().for_each(|lib| {
             lib.into_iter().for_each(|game| {

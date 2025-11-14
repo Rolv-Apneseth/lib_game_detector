@@ -23,7 +23,7 @@ const BUTLER_DB_QUERY: &str = "\
     WHERE g.id == c.game_id and il.id == c.install_location_id;\
 ";
 
-const LAUNCHER: SupportedLaunchers = SupportedLaunchers::ItchIO;
+const LAUNCHER: SupportedLaunchers = SupportedLaunchers::Itch;
 
 /// Data returned directly by the query to the Butler DB
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -122,13 +122,13 @@ impl ParsedVerdict {
 }
 
 #[derive(Debug)]
-pub struct ItchIO {
+pub struct Itch {
     path_butler_db: PathBuf,
     #[allow(dead_code)]
     is_using_flatpak: bool,
 }
 
-impl ItchIO {
+impl Itch {
     pub fn new(path_home: &Path, path_config: &Path) -> Self {
         let mut path_config_itch = path_config.join("itch");
         let mut is_using_flatpak = false;
@@ -152,7 +152,7 @@ impl ItchIO {
     }
 }
 
-impl Launcher for ItchIO {
+impl Launcher for Itch {
     fn get_launcher_type(&self) -> SupportedLaunchers {
         LAUNCHER
     }
@@ -273,7 +273,7 @@ mod test {
         path_config: &str,
     ) -> Result<(), GamesParsingError> {
         let path_file_system_mock = get_mock_file_system_path();
-        let launcher = ItchIO::new(
+        let launcher = Itch::new(
             &path_file_system_mock,
             &path_file_system_mock.join(path_config),
         );

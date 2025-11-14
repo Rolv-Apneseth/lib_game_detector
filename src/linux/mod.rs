@@ -7,7 +7,7 @@ use tracing::error;
 use self::launchers::{
     bottles::Bottles,
     heroic::{amazon::HeroicAmazon, epic::HeroicEpic, gog::HeroicGOG},
-    itch::ItchIO,
+    itch::Itch,
     lutris::Lutris,
     minecraft::{at::MinecraftAT, prism::MinecraftPrism},
     steam::{Steam, SteamShortcuts},
@@ -51,7 +51,7 @@ impl GamesDetectorLinux {
             Arc::new(Bottles::new(&path_home, &path_data)),
             Arc::new(MinecraftPrism::new(&path_home, &path_data)),
             Arc::new(MinecraftAT::new(&path_home, &path_data)),
-            Arc::new(ItchIO::new(&path_home, &path_config)),
+            Arc::new(Itch::new(&path_home, &path_config)),
         ]
     }
 }

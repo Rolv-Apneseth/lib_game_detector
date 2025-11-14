@@ -69,7 +69,7 @@ pub enum SupportedLaunchers {
     /// Minecraft instances managed by ATLauncher
     MinecraftAT,
     /// Itch.io games
-    ItchIO,
+    Itch,
 }
 
 /// Custom Result type for Games
@@ -92,7 +92,7 @@ impl Debug for SupportedLaunchers {
                 SupportedLaunchers::Bottles => "Bottles",
                 SupportedLaunchers::MinecraftPrism => "Prism Launcher",
                 SupportedLaunchers::MinecraftAT => "ATLauncher",
-                SupportedLaunchers::ItchIO => "Itch.io",
+                SupportedLaunchers::Itch => "Itch",
             }
         )
     }

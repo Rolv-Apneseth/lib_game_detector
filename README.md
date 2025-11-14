@@ -33,6 +33,14 @@ by installing with:
 cargo add lib_game_detector --no-default-features
 ```
 
+Support for Itch requires `rusqlite` to read an `sqlite` database file. The `bundled` feature
+(to include a bundled version of `sqlite`) is disabled by default, but can be enabled by
+installing with:
+
+```sh
+cargo add lib_game_detector --features bundled_sqlite
+```
+
 ## Usage
 
 ```rust
@@ -63,7 +71,7 @@ let all_games_from_steam = detector.get_all_detected_games_from_specific_launche
   - Only lists entries included in the Library
 - Modded Minecraft (Prism Launcher, ATLauncher)
   - Titles are given as `Minecraft - {instance name}`
-- Itch (itch.io app)
+- Itch ([itch.io](https://itch.io) app)
 
 <!-- cargo-rdme end -->
 

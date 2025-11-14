@@ -12,6 +12,7 @@ use tracing::{error, trace, warn};
 
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
+    error::GamesParsingError,
     macros::logs::{debug_fallback_flatpak, debug_path},
     parsers::parse_value_json,
     utils::clean_game_title,
@@ -150,18 +151,8 @@ impl Itch {
             is_using_flatpak,
         }
     }
-}
 
-impl Launcher for Itch {
-    fn get_launcher_type(&self) -> SupportedLaunchers {
-        LAUNCHER
-    }
-
-    fn is_detected(&self) -> bool {
-        self.path_butler_db.is_file()
-    }
-
-    fn get_detected_games(&self) -> GamesResult {
+    fn get_db_data(&self) -> Result<impl Iterator<Item = DbData>, GamesParsingError> {
         let conn = rusqlite::Connection::open_with_flags(
             self.path_butler_db.as_path(),
             OpenFlags::SQLITE_OPEN_READ_ONLY,
@@ -189,7 +180,22 @@ impl Launcher for Itch {
             .into_iter()
             .filter_map(|r| DbData::from_db_row(r).ok());
 
-        let games = db_data
+        Ok(db_data)
+    }
+}
+
+impl Launcher for Itch {
+    fn get_launcher_type(&self) -> SupportedLaunchers {
+        LAUNCHER
+    }
+
+    fn is_detected(&self) -> bool {
+        self.path_butler_db.is_file()
+    }
+
+    fn get_detected_games(&self) -> GamesResult {
+        let games = self
+            .get_db_data()?
             .map(
                 |DbData {
                      title,

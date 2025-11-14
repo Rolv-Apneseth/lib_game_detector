@@ -1,4 +1,4 @@
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use lib_game_detector::{data::SupportedLaunchers, get_detector};
 
 fn main_benchmarks(c: &mut Criterion) {

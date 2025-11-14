@@ -6,10 +6,10 @@ use std::{
 
 use itertools::Itertools;
 use nom::{
+    IResult, Parser,
     bytes::complete::{take_till, take_until},
     character::complete::char,
     sequence::delimited,
-    IResult, Parser,
 };
 use steam_shortcuts_util::parse_shortcuts;
 use tracing::{error, trace, warn};

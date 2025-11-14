@@ -1,6 +1,6 @@
 use is_terminal::IsTerminal;
 use lib_game_detector::get_detector;
-use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
+use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
 
 // NOTE: run with, e.g. `RUST_LOG=debug cargo run --example 03_env_logger > logs.txt`
 fn main() {

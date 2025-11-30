@@ -70,10 +70,8 @@ impl GamesDetector for GamesDetectorLinux {
             .iter()
             .filter(|l| l.is_detected())
             .filter_map(|l| l.get_detected_games().ok())
-            .fold(vec![], |mut acc, g| {
-                acc.extend(g);
-                acc
-            })
+            .flatten()
+            .collect()
     }
 
     fn get_all_detected_games_with_box_art(&self) -> Vec<Game> {

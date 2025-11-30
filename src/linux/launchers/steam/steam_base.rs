@@ -19,7 +19,7 @@ use walkdir::WalkDir;
 use super::{get_steam_dir, get_steam_flatpak_dir, get_steam_launch_command};
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
-    macros::logs::{debug_fallback_flatpak, debug_path},
+    macros::logs::{debug_fallback_flatpak, debug_path, warn_no_games},
     parsers::parse_value_json,
     utils::{clean_game_title, some_if_dir, some_if_file},
 };
@@ -35,13 +35,18 @@ const LAUNCHER: SupportedLaunchers = SupportedLaunchers::Steam;
 // UTILS --------------------------------------------------------------------------------
 /// Used for checking if a file name matches the structure for an app manifest file
 #[tracing::instrument(level = "trace")]
-fn parse_manifest_filename(filename: &str) -> IResult<&str, &str> {
-    delimited(
+fn matches_manifest_filename(filename: &str) -> bool {
+    let parse_res: IResult<&str, &str> = delimited(
         tag("appmanifest_"),
         take_till(|a| !(a as u8).is_alphanum()),
         tag(".acf"),
     )
-    .parse(filename)
+    .parse(filename);
+
+    parse_res.is_ok_and(|(remainder, _match)| {
+        // Check for a full match (some files end in .*.tmp)
+        remainder.is_empty()
+    })
 }
 
 /// Used for getting the path to the "steamapps" directory, which can be capitalised on some systems.
@@ -92,8 +97,16 @@ impl SteamLibrary<'_> {
     /// Find and return paths of the app manifest files, if they exist
     #[tracing::instrument(level = "trace")]
     fn get_manifest_paths(&self) -> Result<Arc<[PathBuf]>, io::Error> {
-        Ok(read_dir(get_path_steamapps_dir(&self.path_library))?
-            .flatten()
+        let all_paths = read_dir(get_path_steamapps_dir(&self.path_library))
+            .inspect_err(|e| {
+                error!(
+                    "{LAUNCHER} - failed to read library directory at {:?}: {e}",
+                    self.path_library
+                )
+            })?
+            .flatten();
+
+        let manifest_paths = all_paths
             .filter_map(|path| {
                 let filename_os_str = path.file_name();
 
@@ -102,14 +115,16 @@ impl SteamLibrary<'_> {
                     return None;
                 };
 
-                if parse_manifest_filename(filename).is_err() {
+                if !matches_manifest_filename(filename) {
                     trace!("{LAUNCHER} - File skipped as it did not match the pattern of a manifest file: {filename}");
                     return None;
                 };
 
                 Some(path.path())
             })
-            .collect())
+            .collect();
+
+        Ok(manifest_paths)
     }
 
     /// Get the box art for a specific game, checking several different potential locations.
@@ -294,22 +309,29 @@ impl Launcher for Steam {
             e
         })?;
 
+        if libraries.is_empty() {
+            warn!("{LAUNCHER} - No valid libraries");
+            return Ok(Default::default());
+        }
+
         debug!("{LAUNCHER} - libraries detected: {:?}", libraries);
 
         let games = libraries
             .into_iter()
-            .map(|l| {
-                let games = l.get_all_games();
+            .filter_map(|l| {
+                let games = l.get_all_games().ok()?;
+
                 trace!(
                     "{LAUNCHER} - games for library at {:?}: {:?}",
                     l.path_library, games
                 );
-                games
+
+                Some(games)
             })
-            .collect::<Result<Vec<Vec<Game>>, io::Error>>()?;
+            .collect::<Vec<_>>();
 
         if games.is_empty() {
-            error!("{LAUNCHER} - No valid libraries");
+            warn_no_games!();
         }
 
         Ok(games.into_iter().flatten().collect())

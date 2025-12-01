@@ -408,6 +408,9 @@ mod tests {
             },
         ];
 
+        assert!(libraries[0].is_detected());
+        assert!(libraries[1].is_detected());
+
         let mut games = [libraries[0].get_all_games()?, libraries[1].get_all_games()?];
 
         assert_eq!(games[0].len(), 3);

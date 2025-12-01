@@ -19,7 +19,7 @@ use walkdir::WalkDir;
 use super::{get_steam_dir, get_steam_flatpak_dir, get_steam_launch_command};
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
-    macros::logs::{debug_fallback_flatpak, debug_path},
+    macros::logs::{debug_fallback_flatpak, debug_path, warn_no_games},
     parsers::parse_value_json,
     utils::{clean_game_title, some_if_dir, some_if_file},
 };
@@ -35,13 +35,18 @@ const LAUNCHER: SupportedLaunchers = SupportedLaunchers::Steam;
 // UTILS --------------------------------------------------------------------------------
 /// Used for checking if a file name matches the structure for an app manifest file
 #[tracing::instrument(level = "trace")]
-fn parse_manifest_filename(filename: &str) -> IResult<&str, &str> {
-    delimited(
+fn matches_manifest_filename(filename: &str) -> bool {
+    let parse_res: IResult<&str, &str> = delimited(
         tag("appmanifest_"),
         take_till(|a| !(a as u8).is_alphanum()),
         tag(".acf"),
     )
-    .parse(filename)
+    .parse(filename);
+
+    parse_res.is_ok_and(|(remainder, _match)| {
+        // Check for a full match (some files end in .*.tmp)
+        remainder.is_empty()
+    })
 }
 
 /// Used for getting the path to the "steamapps" directory, which can be capitalised on some systems.
@@ -88,12 +93,42 @@ pub struct SteamLibrary<'steamlibrary> {
     path_steam_dir: &'steamlibrary Path,
     is_using_flatpak: bool,
 }
-impl SteamLibrary<'_> {
+impl<'steamlibrary> SteamLibrary<'steamlibrary> {
+    /// Create a new [`SteamLibrary`], returning [`None`] if the given paths do not exist or
+    /// are not directories.
+    #[tracing::instrument(level = "trace")]
+    fn new(
+        path_steam_dir: &'steamlibrary Path,
+        path_library: PathBuf,
+        is_using_flatpak: bool,
+    ) -> Option<Self> {
+        let lib = Self {
+            path_steam_dir,
+            path_library,
+            is_using_flatpak,
+        };
+
+        if !lib.is_detected() {
+            warn!("{LAUNCHER} - Invalid library: {lib:?}");
+            None
+        } else {
+            Some(lib)
+        }
+    }
+
     /// Find and return paths of the app manifest files, if they exist
     #[tracing::instrument(level = "trace")]
     fn get_manifest_paths(&self) -> Result<Arc<[PathBuf]>, io::Error> {
-        Ok(read_dir(get_path_steamapps_dir(&self.path_library))?
-            .flatten()
+        let all_paths = read_dir(get_path_steamapps_dir(&self.path_library))
+            .inspect_err(|e| {
+                error!(
+                    "{LAUNCHER} - failed to read library directory at {:?}: {e}",
+                    self.path_library
+                )
+            })?
+            .flatten();
+
+        let manifest_paths = all_paths
             .filter_map(|path| {
                 let filename_os_str = path.file_name();
 
@@ -102,14 +137,16 @@ impl SteamLibrary<'_> {
                     return None;
                 };
 
-                if parse_manifest_filename(filename).is_err() {
+                if !matches_manifest_filename(filename) {
                     trace!("{LAUNCHER} - File skipped as it did not match the pattern of a manifest file: {filename}");
                     return None;
                 };
 
                 Some(path.path())
             })
-            .collect())
+            .collect();
+
+        Ok(manifest_paths)
     }
 
     /// Get the box art for a specific game, checking several different potential locations.
@@ -119,24 +156,20 @@ impl SteamLibrary<'_> {
         const FILENAME_2: &str = "library_capsule.jpg";
         const ICON_FILENAME_LEN: usize = 44;
 
+        let path_lib_cache = self.path_steam_dir.join("appcache").join("librarycache");
+
         // Old library cache structure
-        let mut path_box_art = some_if_file(
-            self.path_steam_dir
-                .join(format!("appcache/librarycache/{app_id}_{FILENAME_1}")),
-        );
-        let mut path_icon = some_if_file(
-            self.path_steam_dir
-                .join(format!("appcache/librarycache/{app_id}_icon.jpg")),
-        );
+        let mut path_box_art = some_if_file(path_lib_cache.join(format!("{app_id}_{FILENAME_1}")));
+        let mut path_icon = some_if_file(path_lib_cache.join(format!("{app_id}_icon.jpg")));
+        if path_box_art.is_some() && path_icon.is_some() {
+            return (path_box_art, path_icon);
+        }
 
         // In newer structures, icons and box art can appear in any sub-dir within the `app_id` dir
-        for res in WalkDir::new(
-            self.path_steam_dir
-                .join(format!("appcache/librarycache/{app_id}")),
-        )
-        .min_depth(1)
-        .max_depth(2)
-        .contents_first(true)
+        for res in WalkDir::new(path_lib_cache.join(app_id))
+            .min_depth(1)
+            .max_depth(2)
+            .contents_first(true)
         {
             let Ok(dir_entry) = res else {
                 continue;
@@ -225,6 +258,11 @@ impl SteamLibrary<'_> {
             .filter_map(|path| self.get_game(path))
             .collect())
     }
+
+    #[tracing::instrument(level = "trace")]
+    fn is_detected(&self) -> bool {
+        self.path_steam_dir.is_dir() && self.path_library.is_dir()
+    }
 }
 
 // STEAM LAUNCHER -----------------------------------------------------------------------
@@ -268,10 +306,12 @@ impl Steam {
             .filter_map(|line| {
                 parse_value_json(&line, "path")
                     .ok()
-                    .map(|(_, library_path)| SteamLibrary {
-                        path_library: PathBuf::from(library_path),
-                        path_steam_dir: &self.path_steam_dir,
-                        is_using_flatpak: self.is_using_flatpak,
+                    .and_then(|(_, path_library)| {
+                        SteamLibrary::new(
+                            &self.path_steam_dir,
+                            PathBuf::from(path_library),
+                            self.is_using_flatpak,
+                        )
                     })
             })
             .collect())
@@ -289,27 +329,33 @@ impl Launcher for Steam {
 
     #[tracing::instrument(level = "trace")]
     fn get_detected_games(&self) -> GamesResult {
-        let libraries = self.get_steam_libraries().map_err(|e| {
-            error!("{LAUNCHER} - Error with parsing steam libraries:\n{e}");
-            e
-        })?;
+        let libraries = self
+            .get_steam_libraries()
+            .inspect_err(|e| error!("{LAUNCHER} - Error with parsing steam libraries:\n{e}"))?;
+
+        if libraries.is_empty() {
+            error!("{LAUNCHER} - No valid libraries detected");
+            return Ok(vec![]);
+        }
 
         debug!("{LAUNCHER} - libraries detected: {:?}", libraries);
 
         let games = libraries
             .into_iter()
-            .map(|l| {
-                let games = l.get_all_games();
+            .filter_map(|l| {
+                let games = l.get_all_games().ok()?;
+
                 trace!(
                     "{LAUNCHER} - games for library at {:?}: {:?}",
                     l.path_library, games
                 );
-                games
+
+                Some(games)
             })
-            .collect::<Result<Vec<Vec<Game>>, io::Error>>()?;
+            .collect::<Vec<_>>();
 
         if games.is_empty() {
-            error!("{LAUNCHER} - No valid libraries");
+            warn_no_games!();
         }
 
         Ok(games.into_iter().flatten().collect())
@@ -338,17 +384,9 @@ mod tests {
         // Minor test to ensure debug formatting for `SupportedLaunchers` works as intended
         assert_eq!(format!("{:?}", launcher.get_launcher_type()), "Steam");
 
-        let games_result = launcher.get_detected_games();
-
         // Library paths in `libraryfolders.vdf` mock are invalid library paths
-        assert!(games_result.is_err());
-        if let Err(e) = games_result {
-            assert!(matches!(e, GamesParsingError::Io(_)));
-
-            if let GamesParsingError::Other(anyhow_error) = e {
-                assert_eq!(anyhow_error.to_string(), "No valid libraries detected.")
-            }
-        }
+        let games_res = launcher.get_detected_games();
+        assert!(games_res.is_ok_and(|g| g.is_empty()));
     }
 
     #[test]
@@ -369,6 +407,9 @@ mod tests {
                 is_using_flatpak: false,
             },
         ];
+
+        assert!(libraries[0].is_detected());
+        assert!(libraries[1].is_detected());
 
         let mut games = [libraries[0].get_all_games()?, libraries[1].get_all_games()?];
 

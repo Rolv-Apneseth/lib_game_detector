@@ -22,6 +22,10 @@ struct ParsableConfigData {
     path_instances: PathBuf,
 }
 
+struct ParsableInstanceData {
+    name: String,
+}
+
 #[derive(Debug)]
 pub struct MinecraftPrism {
     path_root: PathBuf,
@@ -70,6 +74,12 @@ impl MinecraftPrism {
 
         Ok((file_content, ParsableConfigData { path_instances }))
     }
+
+    #[tracing::instrument(level = "trace", skip(file_content))]
+    fn parse_instance_config<'a>(file_content: &'a str) -> IResult<&'a str, ParsableInstanceData> {
+        let (file_content, name) = parse_value_cfg(file_content, "name")?;
+        Ok((file_content, ParsableInstanceData { name }))
+    }
 }
 
 impl Launcher for MinecraftPrism {
@@ -99,15 +109,32 @@ impl Launcher for MinecraftPrism {
             .flatten()
             .filter_map(|dir_entry| {
                 let path = dir_entry.path();
-                if !path.is_dir() || !path.join("instance.cfg").is_file() {
+                let instance_config = path.join("instance.cfg");
+                if !path.is_dir() || !instance_config.is_file() {
                     return None;
                 }
 
-                Some(dir_entry.file_name().to_str()?.to_owned())
+                Some((dir_entry.file_name().to_str()?.to_owned(), instance_config))
             })
-            .map(|title| {
+            .map(|(name, instance_config)| {
+                let file_content = read_to_string(&instance_config)
+                    .map_err(|e| {
+                        warn!(
+                            "{LAUNCHER} - couldn't read instance config at {instance_config:?}: {e}"
+                        );
+                    })
+                    .ok();
+                let instance_data = file_content.as_ref().and_then(|file_content| Self::parse_instance_config(file_content)
+                    .map_err(|e| {
+                        warn!(
+                            "{LAUNCHER} - couldn't parse instance config at {instance_config:?}: {e}"
+                        );
+                    })
+                    .ok());
+                let title = instance_data.as_ref().map_or(&name, |(_, instance_data)| &instance_data.name);
+
                 let launch_command = {
-                    let args = ["--launch", &title];
+                    let args = ["--launch", &name];
                     if self.is_using_flatpak {
                         get_launch_command_flatpak("org.prismlauncher.PrismLauncher", [], args, [])
                     } else {
@@ -116,7 +143,7 @@ impl Launcher for MinecraftPrism {
                 };
                 trace!("{LAUNCHER} - launch command for '{title}': {launch_command:?}");
 
-                let path_game_dir = some_if_dir(path_instances.join(&title));
+                let path_game_dir = some_if_dir(path_instances.join(&name));
                 let path_icon = get_path_icon(path_game_dir.as_ref());
                 // No box art provided
                 let path_box_art = None;
@@ -125,7 +152,7 @@ impl Launcher for MinecraftPrism {
                 trace!("{LAUNCHER} - Icon for '{title}': {path_icon:?}");
 
                 Game {
-                    title: get_minecraft_title(&title),
+                    title: get_minecraft_title(title),
                     launch_command,
                     path_box_art,
                     path_game_dir,
@@ -179,7 +206,10 @@ mod tests {
         assert_eq!(games.len(), 3);
 
         assert_eq!(games[0].title, get_minecraft_title("1.20.6"));
-        assert_eq!(games[1].title, get_minecraft_title("All The Forge 10"));
+        assert_eq!(
+            games[1].title,
+            get_minecraft_title("All The Forge 10 v10.8.2")
+        );
         assert_eq!(games[2].title, get_minecraft_title("The Pixelmon Modpack"));
 
         assert!(games[0].path_icon.is_none());

@@ -52,12 +52,16 @@ jobs:
             - name: Docs
               run: cargo doc --verbose
 
+            - uses: taiki-e/install-action@v2
+              with:
+                tool: cargo-rdme
+
             - name: README updated
-              run: |
-                cargo install cargo-rdme
-                cargo rdme --check
+              run: cargo rdme --check
+
+            - uses: taiki-e/install-action@v2
+              with:
+                tool: cargo-msrv
 
             - name: Minimum Rust version
-              run: |
-                cargo install cargo-msrv
-                cargo msrv verify
+              run: cargo msrv verify

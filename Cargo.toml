@@ -9,6 +9,9 @@ license = "AGPL-3.0"
 rust-version = "1.85.0"
 include = ["/src"]
 
+[package.metadata.docs.rs]
+all-features = true
+
 [dependencies]
 dirs = "6.0"
 tracing = "0.1"
@@ -19,7 +22,7 @@ thiserror = "2.0"
 steam_shortcuts_util = "1.1"
 walkdir = "2.5"
 serde = { version = "1.0", features = ["derive"], optional = true }
-rusqlite = { version = "0.37" }
+rusqlite = { version = "0.38" }
 
 [dev-dependencies]
 criterion = { version = "0.7", features = ["html_reports"] }
@@ -45,6 +48,3 @@ harness = false
 default = ["serde"]
 serde = ["dep:serde"]
 bundled_sqlite = ["rusqlite/bundled"]
-
-[package.metadata.docs.rs]
-all-features = true

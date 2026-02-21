@@ -19,7 +19,7 @@ pub(crate) use debug_fallback_flatpak;
 
 macro_rules! warn_no_games {
     () => {
-        tracing::warn!("{LAUNCHER} - No games found");
+        tracing::warn!("{LAUNCHER} - Detected but no games found");
     };
 }
 pub(crate) use warn_no_games;

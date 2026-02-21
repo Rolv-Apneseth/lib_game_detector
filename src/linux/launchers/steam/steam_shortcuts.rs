@@ -226,8 +226,11 @@ impl SteamShortcuts {
     }
 
     #[tracing::instrument(level = "trace")]
-    fn parse_combined_data(&self) -> Result<Vec<ParsableDataCombined>, GamesParsingError> {
-        let userdata_files = find_userdata_files(&self.path_steam_userdata_dir)?;
+    fn parse_combined_data(&self) -> Result<Option<Vec<ParsableDataCombined>>, GamesParsingError> {
+        let mut userdata_files = find_userdata_files(&self.path_steam_userdata_dir)?.peekable();
+        if userdata_files.peek().is_none() {
+            return Ok(None);
+        };
 
         userdata_files
             .map(
@@ -263,7 +266,8 @@ impl SteamShortcuts {
                 },
             )
             .flatten_ok()
-            .collect()
+            .collect::<Result<Vec<ParsableDataCombined>, GamesParsingError>>()
+            .map(Some)
     }
 }
 
@@ -278,10 +282,13 @@ impl Launcher for SteamShortcuts {
 
     #[tracing::instrument(level = "trace")]
     fn get_detected_games(&self) -> GamesResult {
-        let shortcut_data = self.parse_combined_data().map_err(|e| {
-            error!("{LAUNCHER} - {e}");
-            e
-        })?;
+        let Some(shortcut_data) = self
+            .parse_combined_data()
+            .inspect_err(|e| error!("{LAUNCHER} - {e}"))?
+        else {
+            // No Steam shortcut data files found
+            return Ok(vec![]);
+        };
 
         if shortcut_data.is_empty() {
             warn_no_games!();

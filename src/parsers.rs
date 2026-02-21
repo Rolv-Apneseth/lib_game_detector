@@ -21,6 +21,7 @@ pub fn parse_till_end_of_line(input: &str) -> IResult<&str, &str> {
     take_till(|a| (a as u8).is_newline())(input)
 }
 
+#[allow(unused)]
 /// Parse both the key and value from a given line of a `.json` file (both values must be quoted)
 pub fn parse_double_quoted_key_value(line: &str) -> IResult<&str, (&str, &str)> {
     let (line, key) = preceded(parse_not_double_quote, parse_between_double_quotes).parse(line)?;

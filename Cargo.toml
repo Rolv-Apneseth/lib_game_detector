@@ -1,6 +1,6 @@
 [package]
 name = "lib_game_detector"
-version = "0.0.29"
+version = "0.0.30"
 edition = "2024"
 description = "A Rust library for detecting and parsing data about games installed on the system"
 readme = "README.md"

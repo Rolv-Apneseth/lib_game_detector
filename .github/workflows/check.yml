@@ -50,7 +50,7 @@ jobs:
               run: cargo test --lib --examples --verbose
 
             - name: Docs
-              run: cargo doc --verbose
+              run: cargo doc --verbose --no-deps
 
             - uses: taiki-e/install-action@v2
               with:

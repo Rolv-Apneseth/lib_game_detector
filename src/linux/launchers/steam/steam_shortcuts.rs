@@ -207,7 +207,7 @@ pub struct SteamShortcuts {
 
 impl SteamShortcuts {
     pub fn new(path_home: &Path, path_data: &Path) -> Self {
-        let mut path_steam_userdata_dir = get_steam_dir(path_data).join("userdata");
+        let mut path_steam_userdata_dir = get_steam_dir(path_home, path_data).join("userdata");
         let mut is_using_flatpak = false;
 
         if !path_steam_userdata_dir.is_dir() {
@@ -332,15 +332,17 @@ mod tests {
     use super::*;
     use crate::linux::test_utils::get_mock_file_system_path;
 
-    #[test_case(false, ".local/share"; "standard")]
-    #[test_case(true, "invalid/data/path"; "flatpak")]
+    #[test_case(false, "", ".local/share"; "standard")]
+    #[test_case(false, "steam_symlinks", ""; "standard - fallback steam root")]
+    #[test_case(true, "", "invalid/data/path"; "flatpak")]
     fn test_steam_shortcuts_launcher(
         is_testing_flatpak: bool,
+        path_home: &str,
         path_data: &str,
     ) -> Result<(), GamesParsingError> {
         let path_files_system_mock = get_mock_file_system_path();
         let launcher = SteamShortcuts::new(
-            &path_files_system_mock,
+            &path_files_system_mock.join(path_home),
             &path_files_system_mock.join(path_data),
         );
 

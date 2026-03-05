@@ -16,7 +16,7 @@ use nom::{
 use tracing::{debug, error, trace, warn};
 use walkdir::WalkDir;
 
-use super::{get_steam_dir, get_steam_flatpak_dir, get_steam_launch_command};
+use super::{get_steam_dir, get_steam_flatpak_dir, get_steam_launch_command, get_steamapps_dir};
 use crate::{
     data::{Game, GamesResult, Launcher, SupportedLaunchers},
     macros::logs::{debug_fallback_flatpak, debug_path, warn_no_games},
@@ -47,21 +47,6 @@ fn matches_manifest_filename(filename: &str) -> bool {
         // Check for a full match (some files end in .*.tmp)
         remainder.is_empty()
     })
-}
-
-/// Used for getting the path to the "steamapps" directory, which can be capitalised on some systems.
-#[tracing::instrument(level = "trace")]
-fn get_path_steamapps_dir(path_parent_dir: &Path) -> PathBuf {
-    let path_steamapps_dir = path_parent_dir.join("Steamapps");
-
-    // Use the capitalised version of directory if it exists
-    if path_steamapps_dir.is_dir() {
-        path_steamapps_dir
-    }
-    // Otherwise proceed with the default
-    else {
-        path_parent_dir.join("steamapps")
-    }
 }
 
 /// Used for parsing relevant game's data from the given app manifest file's contents
@@ -119,7 +104,7 @@ impl<'steamlibrary> SteamLibrary<'steamlibrary> {
     /// Find and return paths of the app manifest files, if they exist
     #[tracing::instrument(level = "trace")]
     fn get_manifest_paths(&self) -> Result<Arc<[PathBuf]>, io::Error> {
-        let all_paths = read_dir(get_path_steamapps_dir(&self.path_library))
+        let all_paths = read_dir(get_steamapps_dir(&self.path_library))
             .inspect_err(|e| {
                 error!(
                     "{LAUNCHER} - failed to read library directory at {:?}: {e}",
@@ -295,8 +280,7 @@ impl Steam {
     /// Get all available steam libraries by parsing the `libraryfolders.vdf` file
     #[tracing::instrument(level = "trace")]
     pub fn get_steam_libraries(&self) -> Result<Vec<SteamLibrary<'_>>, io::Error> {
-        let libraries_vdg_path =
-            get_path_steamapps_dir(&self.path_steam_dir).join("libraryfolders.vdf");
+        let libraries_vdg_path = get_steamapps_dir(&self.path_steam_dir).join("libraryfolders.vdf");
 
         debug_path!("libraryfolders.vdf", libraries_vdg_path);
 

@@ -26,9 +26,30 @@ fn get_steam_launch_command(app_id: impl Display, is_using_flatpak: bool) -> Com
     }
 }
 
+/// Used for getting the path to the "steamapps" directory, which can be capitalised on some systems.
+#[tracing::instrument(level = "trace")]
+fn get_steamapps_dir(path_parent_dir: &Path) -> PathBuf {
+    let path_steamapps_dir = path_parent_dir.join("Steamapps");
+
+    // Use the capitalised version of directory if it exists
+    if path_steamapps_dir.is_dir() {
+        path_steamapps_dir
+    }
+    // Otherwise proceed with the default
+    else {
+        path_parent_dir.join("steamapps")
+    }
+}
+
 fn get_steam_dir(path_home: &Path, path_data: &Path) -> PathBuf {
     let path = path_data.join("Steam");
-    if path.is_dir() {
+    if path.is_dir()
+        // Checking the directory exists is not enough, as some tools
+        // can create it even if nothing else is in there
+        && get_steamapps_dir(&path)
+            .join("libraryfolders.vdf")
+            .is_file()
+    {
         return path;
     }
 

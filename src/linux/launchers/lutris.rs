@@ -29,7 +29,7 @@ struct DbRow {
     title: String,
     slug: String,
     installer_slug: Option<String>,
-    game_dir: String,
+    game_dir: Option<String>,
     _parent_slug: Option<String>,
     _playtime: Option<f64>,
 }
@@ -205,7 +205,10 @@ impl Launcher for Lutris {
                         )
                     };
 
-                    let path_game_dir = some_if_dir(PathBuf::from(game_dir));
+                    let mut path_game_dir = None;
+                    if let Some(gd) = game_dir {
+                        path_game_dir = some_if_dir(PathBuf::from(gd));
+                    }
 
                     trace!("{LAUNCHER} - Game directory for '{title}': {path_game_dir:?}");
                     trace!("{LAUNCHER} - Box art for '{title}': {path_box_art:?}");

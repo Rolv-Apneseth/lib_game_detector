@@ -152,14 +152,15 @@ impl<'steamlibrary> SteamLibrary<'steamlibrary> {
     /// Get the box art for a specific game, checking several different potential locations.
     #[tracing::instrument(level = "trace")]
     fn get_images(&self, app_id: &str) -> (Option<PathBuf>, Option<PathBuf>) {
-        const FILENAME_1: &str = "library_600x900.jpg";
-        const FILENAME_2: &str = "library_capsule.jpg";
+        const FILENAME_1: &str = "library_600x900";
+        const FILENAME_2: &str = "library_capsule";
         const ICON_FILENAME_LEN: usize = 44;
 
         let path_lib_cache = self.path_steam_dir.join("appcache").join("librarycache");
 
         // Old library cache structure
-        let mut path_box_art = some_if_file(path_lib_cache.join(format!("{app_id}_{FILENAME_1}")));
+        let mut path_box_art =
+            some_if_file(path_lib_cache.join(format!("{app_id}_{FILENAME_1}.jpg")));
         let mut path_icon = some_if_file(path_lib_cache.join(format!("{app_id}_icon.jpg")));
         if path_box_art.is_some() && path_icon.is_some() {
             return (path_box_art, path_icon);
@@ -179,13 +180,15 @@ impl<'steamlibrary> SteamLibrary<'steamlibrary> {
                 continue;
             };
 
-            if filename == FILENAME_1 || filename == FILENAME_2 {
-                path_box_art = Some(dir_entry.path().to_owned());
+            // Don't match by filename exactly, as the name may also be named
+            // differently depending on the language, e.g. 292030_library_600x900_russian.jpg
+            if filename.contains(FILENAME_1) || filename.contains(FILENAME_2) {
+                path_box_art = Some(dir_entry.into_path());
             }
             // Not sure how else to parse these, as I can't find them mentioned anywhere.
             // The filenames look like: a4c7a8cce43d797c275aaf601d6855b90ba87769.jpg
             else if filename.len() == ICON_FILENAME_LEN && filename.ends_with(".jpg") {
-                path_icon = Some(dir_entry.path().to_owned());
+                path_icon = Some(dir_entry.into_path());
             }
         }
 
@@ -416,27 +419,33 @@ mod tests {
 
         let mut games = [libraries[0].get_all_games()?, libraries[1].get_all_games()?];
 
-        assert_eq!(games[0].len(), 3);
+        assert_eq!(games[0].len(), 4);
         assert_eq!(games[1].len(), 3);
 
         games[0].sort_by_key(|a| a.title.clone());
         games[1].sort_by_key(|a| a.title.clone());
 
         assert_eq!(games[0][0].title, "Sid Meier's Civilization V");
-        assert_eq!(games[0][1].title, "Unrailed!");
-        assert_eq!(games[0][2].title, "Warhammer 40,000: Speed Freeks");
+        assert_eq!(games[0][1].title, "THE FINALS");
+        assert_eq!(games[0][2].title, "Unrailed!");
+        assert_eq!(games[0][3].title, "Warhammer 40,000: Speed Freeks");
         assert_eq!(games[1][0].title, "Marvel Rivals");
         assert_eq!(games[1][1].title, "Terraria");
         assert_eq!(games[1][2].title, "Timberborn");
 
         assert!(games[0][0].path_icon.is_some());
         assert!(games[0][1].path_icon.is_none());
-        assert!(games[0][2].path_icon.is_some());
+        assert!(games[0][2].path_icon.is_none());
+        assert!(games[0][3].path_icon.is_some());
         assert!(games[1][0].path_icon.is_none());
         assert!(games[1][1].path_icon.is_none());
         assert!(games[1][2].path_icon.is_none());
 
-        assert!(games[0][2].path_box_art.as_ref().is_some_and(|p| {
+        assert!(games[0][1].path_box_art.as_ref().is_some_and(|p| {
+            p.file_name()
+                .is_some_and(|f| f.to_string_lossy() == "library_600x900_russian.jpg")
+        }));
+        assert!(games[0][3].path_box_art.as_ref().is_some_and(|p| {
             p.file_name()
                 .is_some_and(|f| f.to_string_lossy() == "library_600x900.jpg")
         }));

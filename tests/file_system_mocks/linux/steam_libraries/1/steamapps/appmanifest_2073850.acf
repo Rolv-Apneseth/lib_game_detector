@@ -1,0 +1,42 @@
+"AppState"
+{
+	"appid"		"2073850"
+	"universe"		"1"
+	"name"		"THE FINALS"
+	"StateFlags"		"4"
+	"installdir"		"The Finals"
+	"lastupdated"		"1736803297"
+	"LastPlayed"		"1738179777"
+	"SizeOnDisk"		"16414937689"
+	"StagingSize"		"0"
+	"buildid"		"16901843"
+	"LastOwner"		"76561198092653807"
+	"AutoUpdateBehavior"		"0"
+	"AllowOtherDownloadsWhileRunning"		"0"
+	"ScheduledAutoUpdate"		"0"
+	"InstalledDepots"
+	{
+		"2073851"
+		{
+			"manifest"		"3934894715887886861"
+			"size"		"83954842538"
+		}
+	}
+	"InstallScripts"
+	{
+		"2073851"		"steam_install.vdf"
+	}
+	"SharedDepots"
+	{
+		"228989"		"228980"
+		"228990"		"228980"
+	}
+	"UserConfig"
+	{
+		"language"		"english"
+	}
+	"MountedConfig"
+	{
+		"language"		"english"
+	}
+}

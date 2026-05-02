@@ -19,12 +19,16 @@ use crate::{
 };
 
 // DB DATA --------------------------------------------------------------------------------
-const PGA_DB_QUERY: &str = "SELECT id, name, slug, installer_slug, parent_slug, directory, playtime, installed FROM games;";
+const PGA_DB_QUERY: &str = "\
+    SELECT id, name, slug, installer_slug, parent_slug, directory, playtime, installed, runner \
+    FROM games;\
+";
 
 /// Data returned directly by the query to the pga.db
 #[derive(Debug, Clone)]
 struct DbRow {
     run_id: String,
+    runner: Option<String>,
     title: String,
     slug: String,
     installer_slug: Option<String>,
@@ -40,6 +44,7 @@ impl<'stmt> TryFrom<&rusqlite::Row<'stmt>> for DbRow {
     fn try_from(row: &rusqlite::Row) -> std::result::Result<Self, Self::Error> {
         Ok(Self {
             run_id: row.get::<&str, i32>("id")?.to_string(),
+            runner: row.get("runner")?,
             title: row.get("name")?,
             slug: row.get("slug")?,
             installer_slug: row.get("installer_slug")?,
@@ -127,6 +132,12 @@ impl Lutris {
             .inspect_err(|e| error!("{LAUNCHER} - failed to execute DB query: {e}"))?
             .map(|r| DbRow::try_from(r))
             .filter(|r| Ok(r.installed))
+            // WARN: Ignore Steam entries entirely.
+            //       This is more of an opinion, as these lead to duplicate entries,
+            //       and do not inherently belong to Lutris anyway (will still just
+            //       launch through Steam). Feel free to start a discussion if you disagree.
+            //       See: https://github.com/Rolv-Apneseth/lib_game_detector/issues/53
+            .filter(|r| Ok(r.runner.as_ref().is_none_or(|s| s != "steam")))
             .collect::<Vec<DbRow>>()
             .inspect(|rows| {
                 if rows.is_empty() {

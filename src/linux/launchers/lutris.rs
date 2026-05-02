@@ -19,8 +19,7 @@ use crate::{
 };
 
 // DB DATA --------------------------------------------------------------------------------
-const PGA_DB_QUERY: &str =
-    "SELECT id, name, slug, installer_slug, parent_slug, directory, playtime FROM games;";
+const PGA_DB_QUERY: &str = "SELECT id, name, slug, installer_slug, parent_slug, directory, playtime, installed FROM games;";
 
 /// Data returned directly by the query to the pga.db
 #[derive(Debug, Clone)]
@@ -30,6 +29,7 @@ struct DbRow {
     slug: String,
     installer_slug: Option<String>,
     game_dir: Option<String>,
+    installed: bool,
     _parent_slug: Option<String>,
     _playtime: Option<f64>,
 }
@@ -46,6 +46,7 @@ impl<'stmt> TryFrom<&rusqlite::Row<'stmt>> for DbRow {
             _parent_slug: row.get("parent_slug")?,
             game_dir: row.get("directory")?,
             _playtime: row.get("playtime")?,
+            installed: row.get("installed")?,
         })
     }
 }
@@ -125,6 +126,7 @@ impl Lutris {
         stmt.query(params![])
             .inspect_err(|e| error!("{LAUNCHER} - failed to execute DB query: {e}"))?
             .map(|r| DbRow::try_from(r))
+            .filter(|r| Ok(r.installed))
             .collect::<Vec<DbRow>>()
             .inspect(|rows| {
                 if rows.is_empty() {

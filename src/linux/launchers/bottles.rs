@@ -222,13 +222,9 @@ impl Bottles {
         let mut parsed_games_data: Vec<ParsableBottleYmlData> = Vec::new();
         let mut file_content_str: &str = &file_content;
 
-        loop {
-            let Ok((new_file_content, parsed_data)) = parse_game_from_bottle_yml(file_content_str)
-            else {
-                break;
-            };
+        while let Ok((new_file_content, parsed_data)) = parse_game_from_bottle_yml(file_content_str)
+        {
             file_content_str = new_file_content;
-
             parsed_games_data.push(parsed_data)
         }
 
@@ -263,13 +259,9 @@ impl Bottles {
         let mut parsed_data: Vec<ParsableLibraryData> = Vec::new();
         let mut library_file_content_str: &str = &library_file_content;
 
-        loop {
-            let Ok((new_library_file_content, parsed_library_data)) =
-                parse_game_from_library(library_file_content_str)
-            else {
-                break;
-            };
-
+        while let Ok((new_library_file_content, parsed_library_data)) =
+            parse_game_from_library(library_file_content_str)
+        {
             library_file_content_str = new_library_file_content;
             parsed_data.push(parsed_library_data);
         }

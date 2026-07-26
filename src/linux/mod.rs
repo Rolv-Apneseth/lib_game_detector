@@ -104,10 +104,11 @@ impl GamesDetector for GamesDetectorLinux {
             .find(|l| l.get_launcher_type() == launcher_type)
             .and_then(|l| {
                 l.get_detected_games()
-                    .map_err(|_| {
+                    .map_err(|e| {
+                        #[cfg(debug_assertions)]
+                        dbg!(&e);
                         error!(
-                            "Launcher detected but there was an error with getting detected games for the launcher: {:?}",
-                            l.get_launcher_type()
+                            "Launcher detected but there was an error with getting detected games for the launcher: {e:#?}"
                         )
                     })
                     .ok()

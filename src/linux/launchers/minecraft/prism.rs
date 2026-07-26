@@ -13,7 +13,10 @@ use crate::{
     linux::launchers::minecraft::get_minecraft_title,
     macros::logs::{debug_fallback_flatpak, debug_path, warn_no_games},
     parsers::{parse_until_key_cfg, parse_value_cfg},
-    utils::{get_launch_command, get_launch_command_flatpak, some_if_dir, some_if_file},
+    utils::{
+        get_existing_image_path, get_launch_command, get_launch_command_flatpak, some_if_dir,
+        some_if_file,
+    },
 };
 
 const LAUNCHER: SupportedLaunchers = SupportedLaunchers::MinecraftPrism;
@@ -24,6 +27,7 @@ struct ParsableConfigData {
 
 struct ParsableInstanceData {
     name: String,
+    icon_key: Option<String>,
 }
 
 #[derive(Debug)]
@@ -49,6 +53,7 @@ impl MinecraftPrism {
         let path_config = path_root.join("prismlauncher.cfg");
 
         debug_path!("root directory", path_root);
+        debug_path!("prismlauncher.cfg", path_config);
 
         Self {
             path_root,
@@ -77,8 +82,26 @@ impl MinecraftPrism {
 
     #[tracing::instrument(level = "trace", skip(file_content))]
     fn parse_instance_config<'a>(file_content: &'a str) -> IResult<&'a str, ParsableInstanceData> {
-        let (file_content, name) = parse_value_cfg(file_content, "name")?;
-        Ok((file_content, ParsableInstanceData { name }))
+        let (_, name) = parse_value_cfg(file_content, "name")?;
+
+        let icon_key = parse_value_cfg(file_content, "iconKey")
+            .ok()
+            .map(|(_, k)| k);
+
+        Ok((file_content, ParsableInstanceData { name, icon_key }))
+    }
+
+    fn get_path_instances(&self, file_content: &str) -> PathBuf {
+        match self.parse_prism_config(file_content) {
+            Ok((_, config_data)) => {
+                let ParsableConfigData { path_instances } = config_data;
+                path_instances
+            }
+            Err(e) => {
+                trace!("error in parsing instances path from config file: {e:#?}");
+                self.path_root.join("instances")
+            }
+        }
     }
 }
 
@@ -95,14 +118,18 @@ impl Launcher for MinecraftPrism {
     fn get_detected_games(&self) -> GamesResult {
         let file_content = read_to_string(&self.path_config)?;
 
-        let (_, config_data) = self.parse_prism_config(&file_content)?;
-        let ParsableConfigData { path_instances } = config_data;
-
+        let path_instances = self.get_path_instances(&file_content);
         if !path_instances.is_dir() {
             error!(
                 "{LAUNCHER} - the parsed instances dir does not exist: {:?}",
                 path_instances
             );
+            return Ok(vec![]);
+        }
+
+        let path_icons = self.path_root.join("icons");
+        if !path_icons.is_dir() {
+            warn!("{LAUNCHER} - could not find icons directory at {path_icons:?}")
         }
 
         let games: Vec<Game> = read_dir(&path_instances)?
@@ -144,7 +171,11 @@ impl Launcher for MinecraftPrism {
                 trace!("{LAUNCHER} - launch command for '{title}': {launch_command:?}");
 
                 let path_game_dir = some_if_dir(path_instances.join(&name));
-                let path_icon = get_path_icon(path_game_dir.as_ref());
+
+                let icon_key = instance_data.as_ref().and_then(|(_, instance_data)|
+                    instance_data.icon_key.as_ref());
+                let path_icon = get_path_icon(&path_icons,  icon_key, path_game_dir.as_ref());
+
                 // No box art provided
                 let path_box_art = None;
 
@@ -170,12 +201,21 @@ impl Launcher for MinecraftPrism {
     }
 }
 
-fn get_path_icon(path_instance: Option<&PathBuf>) -> Option<PathBuf> {
-    let path_instance = path_instance?;
+fn get_path_icon(
+    path_icons: &Path,
+    icon_key: Option<&String>,
+    path_instance: Option<&PathBuf>,
+) -> Option<PathBuf> {
+    icon_key
+        .and_then(|key| get_existing_image_path(path_icons, key))
+        // Support for older Prism versions
+        .or_else(|| {
+            let path_instance = path_instance?;
 
-    some_if_file(path_instance.join("icon.png"))
-        .or_else(|| some_if_file(path_instance.join("minecraft").join("icon.png")))
-        .or_else(|| some_if_file(path_instance.join(".minecraft").join("icon.png")))
+            some_if_file(path_instance.join("icon.png"))
+                .or_else(|| some_if_file(path_instance.join("minecraft").join("icon.png")))
+                .or_else(|| some_if_file(path_instance.join(".minecraft").join("icon.png")))
+        })
 }
 
 #[cfg(test)]

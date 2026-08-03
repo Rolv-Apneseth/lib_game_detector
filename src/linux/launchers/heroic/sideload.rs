@@ -151,6 +151,8 @@ impl Launcher for HeroicSideload {
                     path_game_dir,
                     path_icon: None,
                     source: LAUNCHER.clone(),
+                    path_hero: None,
+                    path_header: None,
                 }
             })
             .collect())

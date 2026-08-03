@@ -28,12 +28,21 @@ where
 pub struct Game {
     /// Game title / name.
     pub title: String,
+    /// Path to the game's root directory (if one was found).
+    pub path_game_dir: Option<PathBuf>,
     /// Path to the game's icon (if one was found).
     pub path_icon: Option<PathBuf>,
     /// Path to the game's box art image (if one was found).
     pub path_box_art: Option<PathBuf>,
-    /// Path to the game's root directory (if one was found).
-    pub path_game_dir: Option<PathBuf>,
+    /// Path to the game's hero image (if one was found).
+    ///
+    /// This would be the long background image on a game's library page in Steam.
+    pub path_hero: Option<PathBuf>,
+    /// Path to the game's header image (if one was found).
+    ///
+    /// This would be the shorter title image on a Steam's library page for the most
+    /// recently played game, or the download page.
+    pub path_header: Option<PathBuf>,
 
     /// Command to launch the game.
     // NOTE: serialized output can be `sh -c "$launch_command"`

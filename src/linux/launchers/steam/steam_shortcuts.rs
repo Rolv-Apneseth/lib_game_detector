@@ -11,7 +11,7 @@ use nom::{
     character::complete::char,
     sequence::delimited,
 };
-use steam_shortcuts_util::parse_shortcuts;
+use steam_shortcuts_util::{Shortcut, parse_shortcuts};
 use tracing::{error, trace, warn};
 
 use super::{get_steam_dir, get_steam_flatpak_dir, get_steam_launch_command};
@@ -26,8 +26,8 @@ use crate::{
 /// Data parseable from a Steam user's `shortcuts.vdf`
 #[derive(Debug, Clone, Default)]
 pub struct ParsableShortcutData {
+    grid_id: String,
     icon: String,
-    box_art_id: String,
     title: String,
 }
 
@@ -45,18 +45,28 @@ pub struct ParsableDataCombined {
     app_id: String,
     path_box_art: Option<PathBuf>,
     path_icon: Option<PathBuf>,
+    path_hero: Option<PathBuf>,
+    path_header: Option<PathBuf>,
 }
 impl ParsableDataCombined {
     fn combine(
-        path_box_art_dir: &Path,
+        path_img_dir: &Path,
         shortcut_data: ParsableShortcutData,
         screenshot_data: ParsableScreenshotData,
     ) -> Self {
+        let id = &shortcut_data.grid_id;
+
         // Regular Steam shortcut images have an extra "p" at the end of the image file names,
         // whereas the flathub Steam ones don't.
-        let path_box_art =
-            get_existing_image_path(path_box_art_dir, format!("{}p", shortcut_data.box_art_id))
-                .or_else(|| get_existing_image_path(path_box_art_dir, &shortcut_data.box_art_id));
+        // TODO: verify the above - currently flatpak version isn't launching for me
+        let path_box_art = get_existing_image_path(path_img_dir, format!("{id}p"))
+            .or_else(|| get_existing_image_path(path_img_dir, id));
+
+        let path_hero = get_existing_image_path(path_img_dir, format!("{id}_hero"));
+        let path_header = get_existing_image_path(path_img_dir, id);
+
+        // Logo (currently unused) would be:
+        // let path_logo = get_existing_image_path(path_img_dir, format!("{}_logo", shortcut_data.box_art_id));
 
         let mut path_icon = None;
         if !shortcut_data.icon.is_empty() {
@@ -71,6 +81,8 @@ impl ParsableDataCombined {
             app_id: screenshot_data.app_id,
             path_box_art,
             path_icon,
+            path_hero,
+            path_header,
         }
     }
 }
@@ -141,13 +153,14 @@ fn get_parsable_shortcuts_data(
     path_shortcuts: &Path,
 ) -> Result<Vec<ParsableShortcutData>, GamesParsingError> {
     let content = read(path_shortcuts)?;
-    let shortcuts = parse_shortcuts(content.as_slice()).map_err(GamesParsingError::Other)?;
+    let shortcuts: Vec<Shortcut> =
+        parse_shortcuts(content.as_slice()).map_err(GamesParsingError::Other)?;
 
     Ok(shortcuts
         .into_iter()
         .map(|s| ParsableShortcutData {
             title: s.app_name.to_owned(),
-            box_art_id: s.app_id.to_string(),
+            grid_id: s.app_id.to_string(),
             icon: s.icon.to_owned(),
         })
         .collect())
@@ -302,6 +315,8 @@ impl Launcher for SteamShortcuts {
                      title,
                      path_box_art,
                      path_icon,
+                     path_hero,
+                     path_header,
                  }| {
                     let launch_command = get_steam_launch_command(app_id, self.is_using_flatpak);
                     let path_game_dir = None;
@@ -318,6 +333,8 @@ impl Launcher for SteamShortcuts {
                         path_game_dir,
                         path_icon,
                         source: LAUNCHER.clone(),
+                        path_hero,
+                        path_header,
                     }
                 },
             )
@@ -369,6 +386,14 @@ mod tests {
         assert!(games[0].path_icon.is_none());
         assert!(games[1].path_icon.is_none());
         assert!(games[2].path_icon.is_none());
+
+        assert!(games[0].path_hero.is_some());
+        assert!(games[1].path_hero.is_none());
+        assert!(games[2].path_hero.is_none());
+
+        assert!(games[0].path_header.is_some());
+        assert!(games[1].path_header.is_none());
+        assert!(games[2].path_header.is_none());
 
         Ok(())
     }

@@ -100,8 +100,8 @@ impl Launcher for MinecraftAT {
                 };
                 trace!("{LAUNCHER} - launch command for '{title}': {launch_command:?}");
 
-                // No box art provided
-                let path_box_art = None;
+                // AFAICT, no images saved other than the icon
+                let (path_box_art, path_hero, path_header) = (None, None, None);
 
                 let path_icon = get_existing_image_path(&instance_path, "instance");
                 let path_game_dir = some_if_dir(instance_path);
@@ -116,6 +116,8 @@ impl Launcher for MinecraftAT {
                     path_game_dir,
                     path_icon,
                     source: LAUNCHER.clone(),
+                    path_hero,
+                    path_header,
                 }
             })
             .collect();

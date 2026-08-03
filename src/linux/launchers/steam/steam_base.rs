@@ -32,6 +32,13 @@ struct ParsableManifestData {
 
 const LAUNCHER: SupportedLaunchers = SupportedLaunchers::Steam;
 
+struct SteamImages {
+    path_icon: Option<PathBuf>,
+    path_box_art: Option<PathBuf>,
+    path_hero: Option<PathBuf>,
+    path_header: Option<PathBuf>,
+}
+
 // UTILS --------------------------------------------------------------------------------
 /// Used for checking if a file name matches the structure for an app manifest file
 #[tracing::instrument(level = "trace")]
@@ -151,24 +158,31 @@ impl<'steamlibrary> SteamLibrary<'steamlibrary> {
 
     /// Get the box art for a specific game, checking several different potential locations.
     #[tracing::instrument(level = "trace")]
-    fn get_images(&self, app_id: &str) -> (Option<PathBuf>, Option<PathBuf>) {
-        const FILENAME_1: &str = "library_600x900";
-        const FILENAME_2: &str = "library_capsule";
+    fn get_images(&self, app_id: &str) -> SteamImages {
+        const BOX_ART_FILENAME_1: &str = "library_600x900";
+        const BOX_ART_FILENAME_2: &str = "library_capsule";
         const ICON_FILENAME_LEN: usize = 44;
 
         let path_lib_cache = self.path_steam_dir.join("appcache").join("librarycache");
 
         // Old library cache structure
         let mut path_box_art =
-            some_if_file(path_lib_cache.join(format!("{app_id}_{FILENAME_1}.jpg")));
+            some_if_file(path_lib_cache.join(format!("{app_id}_{BOX_ART_FILENAME_1}.jpg")));
         let mut path_icon = some_if_file(path_lib_cache.join(format!("{app_id}_icon.jpg")));
+        let mut path_header =
+            some_if_file(path_lib_cache.join(format!("{app_id}_library_header.jpg")));
+        let mut path_hero = some_if_file(path_lib_cache.join(format!("{app_id}_library_hero.jpg")));
         if path_box_art.is_some() && path_icon.is_some() {
-            return (path_box_art, path_icon);
+            return SteamImages {
+                path_icon,
+                path_box_art,
+                path_hero,
+                path_header,
+            };
         }
 
         // In newer structures, icons and box art can appear in any sub-dir within the `app_id` dir
         for res in WalkDir::new(path_lib_cache.join(app_id))
-            .min_depth(1)
             .max_depth(2)
             .contents_first(true)
         {
@@ -182,17 +196,26 @@ impl<'steamlibrary> SteamLibrary<'steamlibrary> {
 
             // Don't match by filename exactly, as the name may also be named
             // differently depending on the language, e.g. 292030_library_600x900_russian.jpg
-            if filename.contains(FILENAME_1) || filename.contains(FILENAME_2) {
+            if filename.contains(BOX_ART_FILENAME_1) || filename.contains(BOX_ART_FILENAME_2) {
                 path_box_art = Some(dir_entry.into_path());
             }
             // Not sure how else to parse these, as I can't find them mentioned anywhere.
             // The filenames look like: a4c7a8cce43d797c275aaf601d6855b90ba87769.jpg
             else if filename.len() == ICON_FILENAME_LEN && filename.ends_with(".jpg") {
                 path_icon = Some(dir_entry.into_path());
+            } else if filename.ends_with("header.jpg") {
+                path_header = Some(dir_entry.into_path())
+            } else if filename.ends_with("hero.jpg") {
+                path_hero = Some(dir_entry.into_path())
             }
         }
 
-        (path_box_art, path_icon)
+        SteamImages {
+            path_icon,
+            path_box_art,
+            path_hero,
+            path_header,
+        }
     }
 
     /// Returns a new Game from the given path to a steam app manifest file (`appmanifest_.*.acf`)
@@ -221,7 +244,12 @@ impl<'steamlibrary> SteamLibrary<'steamlibrary> {
                 .join(install_dir_path),
         );
 
-        let (path_box_art, path_icon) = self.get_images(&app_id);
+        let SteamImages {
+            path_icon,
+            path_box_art,
+            path_hero,
+            path_header,
+        } = self.get_images(&app_id);
 
         trace!("{LAUNCHER} - Game directory for '{title}': {path_game_dir:?}");
         trace!("{LAUNCHER} - Box art for '{title}': {path_box_art:?}");
@@ -238,8 +266,10 @@ impl<'steamlibrary> SteamLibrary<'steamlibrary> {
             title,
             launch_command,
             path_box_art,
-            path_game_dir,
+            path_hero,
+            path_header,
             path_icon,
+            path_game_dir,
             source: LAUNCHER.clone(),
         })
     }
@@ -449,6 +479,22 @@ mod tests {
             p.file_name()
                 .is_some_and(|f| f.to_string_lossy() == "library_600x900.jpg")
         }));
+
+        assert!(games[0][0].path_header.is_some());
+        assert!(games[0][1].path_header.is_none());
+        assert!(games[0][2].path_header.is_none());
+        assert!(games[0][3].path_header.is_none());
+        assert!(games[1][0].path_header.is_none());
+        assert!(games[1][1].path_header.is_none());
+        assert!(games[1][2].path_header.is_none());
+
+        assert!(games[0][0].path_hero.is_some());
+        assert!(games[0][1].path_hero.is_none());
+        assert!(games[0][2].path_hero.is_none());
+        assert!(games[0][3].path_hero.is_none());
+        assert!(games[1][0].path_hero.is_none());
+        assert!(games[1][1].path_hero.is_none());
+        assert!(games[1][2].path_hero.is_none());
 
         games.into_iter().for_each(|lib| {
             lib.into_iter().for_each(|game| {

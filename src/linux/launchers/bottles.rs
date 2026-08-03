@@ -340,6 +340,9 @@ impl Launcher for Bottles {
                         some_if_file(path)
                     });
 
+                    // No banner / background images
+                    let (path_hero, path_header) = (None, None);
+
                     let path_game_dir = some_if_dir(PathBuf::from(game_dir));
 
                     trace!("{LAUNCHER} - Game directory for '{title}': {path_game_dir:?}");
@@ -353,6 +356,8 @@ impl Launcher for Bottles {
                         path_box_art,
                         path_game_dir,
                         source: LAUNCHER.clone(),
+                        path_hero,
+                        path_header,
                     }
                 },
             )

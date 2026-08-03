@@ -147,6 +147,8 @@ impl Launcher for HeroicGOG {
                     path_icon,
                     path_box_art: None,
                     source: LAUNCHER.clone(),
+                    path_hero: None,
+                    path_header: None,
                 }
             })
             .collect())

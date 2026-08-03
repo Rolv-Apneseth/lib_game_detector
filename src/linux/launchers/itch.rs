@@ -229,6 +229,8 @@ impl Launcher for Itch {
                         path_game_dir: Some(path_game_dir),
                         launch_command,
                         source: LAUNCHER,
+                        path_hero: None,
+                        path_header: None,
                     }
                 },
             )

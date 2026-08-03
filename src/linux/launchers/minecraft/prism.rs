@@ -176,8 +176,8 @@ impl Launcher for MinecraftPrism {
                     instance_data.icon_key.as_ref());
                 let path_icon = get_path_icon(&path_icons,  icon_key, path_game_dir.as_ref());
 
-                // No box art provided
-                let path_box_art = None;
+                // AFAICT, no images saved other than the icon
+                let (path_box_art, path_hero, path_header) = (None, None, None);
 
                 trace!("{LAUNCHER} - Game directory for '{title}': {path_game_dir:?}");
                 trace!("{LAUNCHER} - Icon for '{title}': {path_icon:?}");
@@ -189,6 +189,8 @@ impl Launcher for MinecraftPrism {
                     path_game_dir,
                     path_icon,
                     source: LAUNCHER.clone(),
+                    path_hero,
+                    path_header,
                 }
             })
             .collect();

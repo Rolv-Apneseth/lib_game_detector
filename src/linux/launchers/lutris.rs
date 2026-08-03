@@ -63,6 +63,7 @@ const LAUNCHER: SupportedLaunchers = SupportedLaunchers::Lutris;
 pub struct Lutris {
     path_pga_db: PathBuf,
     path_box_art_dir: PathBuf,
+    path_banner_dir: PathBuf,
     path_icons_dir: PathBuf,
     is_using_flatpak: bool,
 }
@@ -71,11 +72,9 @@ impl Lutris {
     pub fn new(path_home: &Path, path_config: &Path, path_cache: &Path, path_data: &Path) -> Self {
         let path_config_lutris = path_config.join("lutris");
         let path_cache_lutris = path_cache.join("lutris");
-        let path_data_lutris = path_data.join("lutris");
 
-        let mut path_box_art_dir = path_data_lutris.join("coverart");
-        let mut path_pga_db = path_data_lutris.join("pga.db");
-        let mut path_icons_dir = path_data_lutris.join("icons/hicolor/128x128/apps");
+        let mut path_data = path_data.to_owned();
+        let mut path_data_lutris = path_data.join("lutris");
 
         // Flatpak fallback only if multiple dirs don't exist
         let mut is_using_flatpak = false;
@@ -85,24 +84,31 @@ impl Lutris {
             debug_fallback_flatpak!();
 
             is_using_flatpak = true;
-            let path_flatpak = path_home.join(".var/app/net.lutris.Lutris/data");
-            path_icons_dir = path_flatpak.join("icons/hicolor/128x128/apps");
-            path_box_art_dir = path_flatpak.join("lutris/coverart");
-            path_pga_db = path_flatpak.join("lutris/pga.db")
+            path_data = path_home.join(".var/app/net.lutris.Lutris/data");
+            path_data_lutris = path_data.join("lutris");
         }
 
-        // Potential fallbacks for cover art dir
-        if path_config_lutris.is_dir() && !path_box_art_dir.is_dir() {
-            debug!(
-                "{LAUNCHER} - box art directory not found at {path_box_art_dir:?}, using .config fallback"
-            );
-            path_box_art_dir = path_config_lutris.join("coverart");
+        let mut path_box_art_dir = path_data_lutris.join("coverart");
+        let mut path_banner_dir = path_data_lutris.join("banners");
+        let mut path_pga_db = path_data_lutris.join("pga.db");
+
+        let mut path_icons_dir = path_data_lutris.join("icons/hicolor/128x128/apps");
+        if !path_icons_dir.is_dir() {
+            path_icons_dir = path_data.join("icons/hicolor/128x128/apps");
         }
-        if path_cache_lutris.is_dir() && !path_box_art_dir.is_dir() {
-            debug!(
-                "{LAUNCHER} - box art directory not found at {path_box_art_dir:?}, using .cache fallback"
-            );
+
+        // Potential fallbacks for Lutris data dir contents
+        if path_config_lutris.is_dir() && !path_pga_db.is_file() {
+            debug!("{LAUNCHER} - pga.db not found at {path_pga_db:?}, using config dir fallback");
+            path_box_art_dir = path_config_lutris.join("coverart");
+            path_banner_dir = path_config_lutris.join("banners");
+            path_pga_db = path_config_lutris.join("pga.db");
+        }
+        if path_cache_lutris.is_dir() && !path_pga_db.is_file() {
+            debug!("{LAUNCHER} - pga.db not found at {path_pga_db:?}, using cache dir fallback");
             path_box_art_dir = path_cache_lutris.join("coverart");
+            path_banner_dir = path_cache_lutris.join("banners");
+            path_pga_db = path_cache_lutris.join("pga.db");
         }
 
         debug_path!("box art directory", path_box_art_dir);
@@ -113,6 +119,7 @@ impl Lutris {
             path_box_art_dir,
             path_icons_dir,
             path_pga_db,
+            path_banner_dir,
             is_using_flatpak,
         }
     }
@@ -195,11 +202,12 @@ impl Launcher for Lutris {
 
                     trace!("{LAUNCHER} - launch_command: {launch_command:?}");
 
-                    let (path_box_art, path_icon) = {
-                        let (mut box_art, mut icon) = (None, None);
+                    let (path_box_art, path_icon, path_hero) = {
+                        let (mut box_art, mut icon, mut banner) = (None, None, None);
                         // First, check if a file name using the slug exists
                         if let Some(s) = installer_slug {
                             box_art = get_existing_image_path(&self.path_box_art_dir, s);
+                            banner = get_existing_image_path(&self.path_banner_dir, s);
                             icon = get_existing_image_path(
                                 &self.path_icons_dir,
                                 format!("lutris_{s}"),
@@ -215,6 +223,7 @@ impl Launcher for Lutris {
                                     format!("lutris_{slug}"),
                                 )
                             }),
+                            banner.or_else(|| get_existing_image_path(&self.path_banner_dir, slug)),
                         )
                     };
 
@@ -234,6 +243,8 @@ impl Launcher for Lutris {
                         path_game_dir,
                         path_icon,
                         source: LAUNCHER.clone(),
+                        path_hero,
+                        path_header: None,
                     }
                 },
             )

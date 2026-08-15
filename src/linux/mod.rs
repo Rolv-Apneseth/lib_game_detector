@@ -12,7 +12,10 @@ use self::launchers::{
     minecraft::{at::MinecraftAT, prism::MinecraftPrism},
     steam::{Steam, SteamShortcuts},
 };
-use crate::data::{Game, GamesDetector, GamesPerLauncher, Launchers, SupportedLaunchers};
+use crate::{
+    data::{Game, GamesDetector, GamesPerLauncher, Launchers, SupportedLaunchers},
+    linux::launchers::faugus::Faugus,
+};
 
 mod launchers;
 
@@ -52,6 +55,7 @@ impl GamesDetectorLinux {
             Arc::new(MinecraftPrism::new(&path_home, &path_data)),
             Arc::new(MinecraftAT::new(&path_home, &path_data)),
             Arc::new(Itch::new(&path_home, &path_config)),
+            Arc::new(Faugus::new(&path_home, &path_data)),
         ]
     }
 }

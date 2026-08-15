@@ -79,6 +79,8 @@ pub enum SupportedLaunchers {
     MinecraftAT,
     /// Itch.io games
     Itch,
+    /// Faugus Launcher
+    Faugus,
 }
 
 /// Custom Result type for Games
@@ -102,6 +104,7 @@ impl Debug for SupportedLaunchers {
                 SupportedLaunchers::MinecraftPrism => "Prism Launcher",
                 SupportedLaunchers::MinecraftAT => "ATLauncher",
                 SupportedLaunchers::Itch => "Itch",
+                SupportedLaunchers::Faugus => "Faugus",
             }
         )
     }

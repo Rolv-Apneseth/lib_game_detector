@@ -6,7 +6,13 @@ use nom::{
 };
 // GENERAL ----------------------------------------------------------------------------------------
 pub fn parse_between_double_quotes(input: &str) -> IResult<&str, &str> {
-    delimited(char('"'), is_not("\""), char('"')).parse(input)
+    let not_empty = delimited(char('"'), is_not("\""), char('"')).parse(input);
+    if not_empty.is_ok() {
+        return not_empty;
+    }
+
+    let empty = tag("\"\"").parse(input);
+    if empty.is_ok() { empty } else { not_empty }
 }
 
 pub fn parse_not_double_quote(input: &str) -> IResult<&str, &str> {

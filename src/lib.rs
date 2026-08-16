@@ -68,6 +68,7 @@
 //! - Modded Minecraft (Prism Launcher, ATLauncher)
 //!   - Titles are given as `Minecraft - {instance name}`
 //! - Itch ([itch.io](https://itch.io) app)
+//! - Faugus (<https://github.com/Faugus/faugus-launcher>)
 
 #![deny(missing_docs)]
 #![deny(missing_debug_implementations)]

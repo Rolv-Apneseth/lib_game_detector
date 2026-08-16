@@ -72,6 +72,7 @@ let all_games_from_steam = detector.get_all_detected_games_from_specific_launche
 - Modded Minecraft (Prism Launcher, ATLauncher)
   - Titles are given as `Minecraft - {instance name}`
 - Itch ([itch.io](https://itch.io) app)
+- Faugus (<https://github.com/Faugus/faugus-launcher>)
 
 <!-- cargo-rdme end -->
 

@@ -180,20 +180,20 @@ pub struct Bottles {
 
 impl Bottles {
     pub fn new(path_home: &Path, path_data: &Path) -> Self {
-        let mut path_bottles_data = path_data.join("bottles");
+        let mut path_bottles_home_data = path_data.join("bottles");
         let mut is_using_flatpak = false;
 
-        if !path_bottles_data.is_dir() {
+        if !path_bottles_home_data.is_dir() {
             debug_fallback_flatpak!();
 
             is_using_flatpak = true;
-            path_bottles_data = path_home.join(".var/app/com.usebottles.bottles/data/bottles");
+            path_bottles_home_data = path_home.join(".var/app/com.usebottles.bottles/data/bottles");
         }
 
-        let path_bottles_dir = path_bottles_data.join("bottles");
-        let path_bottles_library = path_bottles_data.join("library.yml");
+        let path_bottles_dir = path_bottles_home_data.join("bottles");
+        let path_bottles_library = path_bottles_home_data.join("library.yml");
 
-        debug_path!("data directory", path_bottles_data);
+        debug_path!("data directory", path_bottles_home_data);
         debug_path!("bottles directory", path_bottles_dir);
         debug_path!("library yaml file", path_bottles_library);
 

@@ -28,6 +28,11 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
+pub struct ParsableBottleSettingsData {
+    custom_bottles_path: String,
+}
+
+#[derive(Debug, Clone)]
 pub struct ParsableLibraryData {
     id: String,
     title: String,
@@ -103,6 +108,24 @@ fn parse_game_from_bottle_yml(file_content: &str) -> IResult<&str, ParsableBottl
     let (file_content, id) = parse_value_yml(file_content, key_id)?;
 
     Ok((file_content, ParsableBottleYmlData { id, game_dir }))
+}
+
+/// Used for parsing relevant settings from the given data file contents
+#[tracing::instrument(level = "trace", skip(file_content))]
+fn parse_bottle_settings_data<'a>(
+    file_content: &'a str,
+) -> IResult<&'a str, ParsableBottleSettingsData> {
+    // CUSTOM BOTTLES PATH
+    let key_bottle_name = "custom_bottles_path";
+    let (file_content, _) = parse_until_key_yml(file_content, key_bottle_name)?;
+    let (file_content, custom_bottles_path) = parse_value_yml(file_content, key_bottle_name)?;
+
+    Ok((
+        file_content,
+        ParsableBottleSettingsData {
+            custom_bottles_path,
+        },
+    ))
 }
 
 /// Used for parsing relevant games' data from the given bottle library file's contents
@@ -190,18 +213,50 @@ impl Bottles {
             path_bottles_home_data = path_home.join(".var/app/com.usebottles.bottles/data/bottles");
         }
 
-        let path_bottles_dir = path_bottles_home_data.join("bottles");
+        let mut path_bottles_dir = path_bottles_home_data.join("bottles");
         let path_bottles_library = path_bottles_home_data.join("library.yml");
+        let path_bottles_data = path_bottles_home_data.join("data.yml");
 
         debug_path!("data directory", path_bottles_home_data);
         debug_path!("bottles directory", path_bottles_dir);
         debug_path!("library yaml file", path_bottles_library);
+        debug_path!("data yaml file", path_bottles_data);
+
+        if let Some(path_bottles_external) = Self::use_custom_bottles_path(&path_bottles_data) {
+            path_bottles_dir = path_bottles_external;
+        }
 
         Bottles {
             path_bottles_dir,
             path_bottles_library,
             is_using_flatpak,
         }
+    }
+
+    /// Parse data from Bottles' `data.yml` file and return the custom bottles path when it's found.
+    #[tracing::instrument(level = "trace")]
+    fn use_custom_bottles_path(path_bottles_data: &Path) -> Option<PathBuf> {
+        let file_content = read_to_string(path_bottles_data)
+            .map_err(|e| {
+                warn!(
+                    "Failed to read the Bottles data file at {:?}:\n{e}",
+                    path_bottles_data
+                );
+            })
+            .ok()?;
+
+        let (_, settings_data) = parse_bottle_settings_data(&file_content)
+            .map_err(|e| {
+                warn!(
+                    "Failed to parse the Bottles data file at {:?}:\n{e}",
+                    path_bottles_data
+                );
+            })
+            .ok()?;
+
+        let custom_bottles_path = PathBuf::from(settings_data.custom_bottles_path);
+        debug_path!("updated bottles directory", custom_bottles_path);
+        Some(custom_bottles_path)
     }
 
     /// Parse data from a given `bottle.yml` file
@@ -372,17 +427,44 @@ mod tests {
     use super::*;
     use crate::{error::GamesParsingError, linux::test_utils::get_mock_file_system_path};
 
-    #[test_case(false, ".local/share"; "standard")]
-    #[test_case(true, "invalid/data/path"; "flatpak")]
+    #[test_case(false, ".local/share", false; "standard")]
+    #[test_case(false, ".local/share", true; "standard + external library")]
+    #[test_case(true, "invalid/data/path", false; "flatpak")]
+    #[test_case(true, "invalid/data/path", true; "flatpak + external library")]
     fn test_bottles_launcher(
         is_testing_flatpak: bool,
         path_data: &str,
+        use_custom_bottles_path: bool,
     ) -> Result<(), GamesParsingError> {
         let path_file_system_mock = get_mock_file_system_path();
-        let launcher = Bottles::new(
+        let mut launcher = Bottles::new(
             &path_file_system_mock,
             &path_file_system_mock.join(path_data),
         );
+
+        // custom_bottles_path is always an absolute path
+        // (in our case "/bottles_external_library", see "data.yml").
+        // However, since our test data lives in another path outside the default root of our filesystem,
+        // we must correct it to ensure that we use path_file_system_mock as the root for our tests.
+        if use_custom_bottles_path {
+            launcher.path_bottles_dir = path_file_system_mock.join(
+                launcher
+                    .path_bottles_dir
+                    .strip_prefix("/")
+                    .unwrap_or(&launcher.path_bottles_dir),
+            )
+        } else {
+            // Here we do not want to test custom_bottles_path,
+            // but "data.yml" always defines it,
+            // move the path to simulate the default behavior.
+            launcher.path_bottles_dir = if launcher.is_using_flatpak {
+                path_file_system_mock.join(".var/app/com.usebottles.bottles/data/bottles/bottles")
+            } else {
+                path_file_system_mock
+                    .join(path_data)
+                    .join("bottles/bottles")
+            };
+        }
 
         assert!(launcher.is_detected());
         assert!(launcher.is_using_flatpak == is_testing_flatpak);
@@ -404,6 +486,14 @@ mod tests {
         assert!(games[1].path_box_art.is_some());
         assert!(games[2].path_box_art.is_some());
         assert!(games[3].path_box_art.is_none());
+
+        assert!(
+            games[0]
+                .path_box_art
+                .as_ref()
+                .unwrap()
+                .starts_with(&launcher.path_bottles_dir)
+        );
 
         // TODO: test icons - need some way to write correct paths in test `library.yml` file
         for g in games {

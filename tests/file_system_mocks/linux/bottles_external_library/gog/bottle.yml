@@ -1,0 +1,36 @@
+Arch: win64
+CompatData: ''
+Creation_Date: '2023-10-31 10:48:05.518788'
+Custom_Path: false
+DLL_Overrides: {}
+DXVK: dxvk-2.2
+Environment: Application
+Environment_Variables: {}
+External_Programs:
+    824dcd4a-3413-476b-acb6-53844f85646e:
+        executable: EADesktop.exe
+        folder: /
+          home
+        fsr: false
+        icon: com.usebottles.bottles-program
+        id: 824dcd4a-3413-476b-acb6-53844f85646e
+        name: EA Client
+        path: C:\Program Files\Electronic Arts\EA Desktop\EA Desktop\EADesktop.exe
+    b11883c1-7b00-43a3-baa4-91e396d5c549:
+        executable: GalaxyClient.exe
+        folder: /not/a/dir
+        fsr: false
+        icon: com.usebottles.bottles-program
+        id: b11883c1-7b00-43a3-baa4-91e396d5c549
+        name: GOG Galaxy
+        path: C:\Program Files (x86)\GOG Galaxy\GalaxyClient.exe
+    bdba364a-aac0-493d-b779-d95bf2d83728:
+        executable: Estlcam.exe
+        folder: /not/a/dir
+        fsr: false
+        icon: com.usebottles.bottles-program
+        id: bdba364a-aac0-493d-b779-d95bf2d83728
+        name: Estlcam
+        path: C:\Program Files (x86)\Estlcam11\Estlcam.exe
+Language: sys
+Name: gog

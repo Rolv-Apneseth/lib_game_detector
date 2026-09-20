@@ -1,7 +1,7 @@
 use nom::{
     AsChar, IResult, Parser,
     bytes::complete::{is_not, tag, take_till, take_until},
-    character::complete::{alpha1, char},
+    character::complete::{alpha1, char, space1},
     sequence::{delimited, preceded},
 };
 // GENERAL ----------------------------------------------------------------------------------------
@@ -99,8 +99,7 @@ pub fn parse_value_yml<'a>(file_content: &'a str, key: &'a str) -> IResult<&'a s
 
     let (file_content, _) = tag(matched_key.as_str()).parse(file_content)?;
 
-    let (file_content, value) =
-        preceded(parse_not_alphanumeric, parse_till_end_of_line).parse(file_content)?;
+    let (file_content, value) = preceded(space1, parse_till_end_of_line).parse(file_content)?;
 
     Ok((file_content, value.to_owned()))
 }
@@ -225,6 +224,17 @@ mod tests {
 
     #[test_case("data:\n\tkey: value", "key", "value", true)]
     #[test_case("data:\n\t\"key\": value", "key", "value", false)]
+    #[test_case("key:\t_value", "key", "_value", true)]
+    #[test_case("key: /", "key", "/", true)]
+    #[test_case("test: /test/value", "test", "/test/value", true)]
+    #[test_case("key: \t../dir", "key", "../dir", true)]
+    #[test_case("foo:bar", "foo", "bar", false)]
+    #[test_case(
+        "key: ~/.config/dir with space",
+        "key",
+        "~/.config/dir with space",
+        true
+    )]
     #[test_case("key=value", "key", "value", false)]
     #[test_case(
         "data:\n\twrong_key1: false\n\twrong_key2: value1\n\tkey: value2\n",

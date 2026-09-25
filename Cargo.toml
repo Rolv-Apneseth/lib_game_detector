@@ -13,19 +13,19 @@ include = ["/src"]
 all-features = true
 
 [dependencies]
-dirs = "6.0"
+dirs = "7.0"
 tracing = "0.1"
 nom = "8.0"
 cfg-if = "1.0"
-itertools = "0.14"
+itertools = "0.15"
 thiserror = "2.0"
 steam_shortcuts_util = "1.1"
 walkdir = "2.5"
 serde = { version = "1.0", features = ["derive"], optional = true }
-rusqlite = { version = "0.39" }
+rusqlite = { version = "0.40" }
 
 [dev-dependencies]
-criterion = { version = "0.7", features = ["html_reports"] }
+criterion = { version = "0.8", features = ["html_reports"] }
 divan = "0.1"
 is-terminal = "0.4"
 test-case = "3.3"

@@ -302,6 +302,7 @@ impl<'steamlibrary> SteamLibrary<'steamlibrary> {
 #[derive(Debug)]
 pub struct Steam {
     path_steam_dir: PathBuf,
+    path_libraries_vdf: PathBuf,
     is_using_flatpak: bool,
 }
 
@@ -309,18 +310,22 @@ impl Steam {
     pub fn new(path_home: &Path, path_data: &Path) -> Self {
         let mut path_steam_dir = get_steam_dir(path_home, path_data);
         let mut is_using_flatpak = false;
+        let mut path_libraries_vdf = get_steamapps_dir(&path_steam_dir).join("libraryfolders.vdf");
 
-        if !path_steam_dir.is_dir() {
+        if !path_libraries_vdf.is_file() {
             debug_fallback_flatpak!();
 
             is_using_flatpak = true;
             path_steam_dir = get_steam_flatpak_dir(path_home);
+            path_libraries_vdf = get_steamapps_dir(&path_steam_dir).join("libraryfolders.vdf");
         };
 
         debug_path!("main Steam directory", path_steam_dir);
+        debug_path!("libraryfolders.vdf", path_libraries_vdf);
 
         Steam {
             path_steam_dir,
+            path_libraries_vdf,
             is_using_flatpak,
         }
     }
@@ -328,11 +333,7 @@ impl Steam {
     /// Get all available steam libraries by parsing the `libraryfolders.vdf` file
     #[tracing::instrument(level = "trace")]
     pub fn get_steam_libraries(&self) -> Result<Vec<SteamLibrary<'_>>, io::Error> {
-        let libraries_vdf_path = get_steamapps_dir(&self.path_steam_dir).join("libraryfolders.vdf");
-
-        debug_path!("libraryfolders.vdf", libraries_vdf_path);
-
-        Ok(BufReader::new(File::open(libraries_vdf_path)?)
+        Ok(BufReader::new(File::open(&self.path_libraries_vdf)?)
             .lines()
             .map_while(Result::ok)
             .filter_map(|line| {

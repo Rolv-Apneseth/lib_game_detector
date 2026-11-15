@@ -1,5 +1,11 @@
-mod steam_base;
-mod steam_shortcuts;
+// PATHS:
+// - ~/.local/share/Steam/
+// - Flatpak: ~/.var/app/com.valvesoftware.Steam
+pub use shortcuts::{base::SteamShortcuts, flatpak::SteamShortcutsFlatpak};
+pub use standard::{base::Steam, flatpak::SteamFlatpak};
+
+mod shortcuts;
+mod standard;
 
 use std::{
     fmt::Display,
@@ -7,8 +13,6 @@ use std::{
     process::Command,
 };
 
-pub use steam_base::Steam;
-pub use steam_shortcuts::SteamShortcuts;
 use tracing::{debug, error};
 
 use crate::{
@@ -43,11 +47,20 @@ fn get_steam_dir(path_home: &Path, path_data: &Path) -> PathBuf {
     }
 
     symlink.canonicalize().unwrap_or_else(|e| {
-        error!("{Steam} - Could not canonicalize symlink, using fallback: {e}");
+        error!("{Steam} - Could not canonicalize symlink, using fallback: {e:#?}");
         path_data.join("Steam")
     })
 }
 
 fn get_steam_flatpak_dir(path_home: &Path) -> PathBuf {
     path_home.join(".var/app/com.valvesoftware.Steam/data/Steam")
+}
+
+#[cfg(test)]
+pub mod test_utils {
+    use crate::{data::Game, linux::test_utils::assert_cmd};
+
+    pub fn assert_cmd_steam(game: &Game) {
+        assert_cmd(game, "steam");
+    }
 }

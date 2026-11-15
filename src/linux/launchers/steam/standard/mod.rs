@@ -1,6 +1,6 @@
-// PATHS:
-// - ~/.local/share/Steam/
-// - Flatpak: ~/.var/app/com.valvesoftware.Steam
+pub(super) mod base;
+pub(super) mod flatpak;
+
 use std::{
     fs::{File, read_dir, read_to_string},
     io::{self, BufRead, BufReader},
@@ -18,19 +18,20 @@ use walkdir::WalkDir;
 
 use super::{get_steam_dir, get_steam_flatpak_dir, get_steam_launch_command};
 use crate::{
-    data::{Game, GamesResult, Launcher, SupportedLaunchers},
-    macros::logs::{debug_fallback_flatpak, debug_path, warn_no_games},
+    data::{Game, SupportedLaunchers},
+    error::GamesParsingError,
+    macros::logs::warn_no_games,
     parsers::parse_value_json,
     utils::{clean_game_title, some_if_dir, some_if_file},
 };
+
+const LAUNCHER: SupportedLaunchers = SupportedLaunchers::Steam;
 
 struct ParsableManifestData {
     app_id: String,
     title: String,
     install_dir_path: String,
 }
-
-const LAUNCHER: SupportedLaunchers = SupportedLaunchers::Steam;
 
 struct SteamImages {
     path_icon: Option<PathBuf>,
@@ -93,6 +94,65 @@ fn get_steamapps_dir(path_parent_dir: &Path) -> PathBuf {
     }
 }
 
+/// Get all available steam libraries by parsing the `libraryfolders.vdf` file
+#[tracing::instrument(level = "trace")]
+fn get_steam_libraries<'a>(
+    path_steam_dir: &'a Path,
+    path_libraries_vdf: &'a Path,
+    is_using_flatpak: bool,
+) -> Result<Vec<SteamLibrary<'a>>, io::Error> {
+    Ok(
+        BufReader::new(File::open(path_libraries_vdf).inspect_err(|e| {
+            error!("{LAUNCHER} - Error with parsing steam libraries file at {path_libraries_vdf:?}:\n{e:#?}")
+        })?)
+        .lines()
+        .map_while(Result::ok)
+        .filter_map(|line| {
+            parse_value_json(&line, "path")
+                .ok()
+                .and_then(|(_, path_library)| {
+                    SteamLibrary::new(
+                        path_steam_dir,
+                        PathBuf::from(path_library),
+                        is_using_flatpak,
+                    )
+                })
+        })
+        .collect(),
+    )
+}
+
+fn get_games_from_libraries(
+    libraries: Vec<SteamLibrary<'_>>,
+) -> Result<Vec<Game>, GamesParsingError> {
+    if libraries.is_empty() {
+        error!("{LAUNCHER} - No valid libraries detected");
+        return Ok(vec![]);
+    }
+
+    debug!("{LAUNCHER} - libraries detected: {:?}", libraries);
+
+    let games = libraries
+        .into_iter()
+        .filter_map(|l| {
+            let games = l.get_all_games().ok()?;
+
+            trace!(
+                "{LAUNCHER} - games for library at {:?}: {:?}",
+                l.path_library, games
+            );
+
+            Some(games)
+        })
+        .collect::<Vec<_>>();
+
+    if games.is_empty() {
+        warn_no_games!();
+    }
+
+    Ok(games.into_iter().flatten().collect())
+}
+
 // STEAM LIBRARY ------------------------------------------------------------------------
 #[derive(Debug)]
 pub struct SteamLibrary<'steamlibrary> {
@@ -129,7 +189,7 @@ impl<'steamlibrary> SteamLibrary<'steamlibrary> {
         let all_paths = read_dir(get_steamapps_dir(&self.path_library))
             .inspect_err(|e| {
                 error!(
-                    "{LAUNCHER} - failed to read library directory at {:?}: {e}",
+                    "{LAUNCHER} - failed to read library directory at {:?}: {e:#?}",
                     self.path_library
                 )
             })?
@@ -223,7 +283,7 @@ impl<'steamlibrary> SteamLibrary<'steamlibrary> {
     fn get_game(&self, path_app_manifest: &PathBuf) -> Option<Game> {
         let file_content = read_to_string(path_app_manifest)
             .map_err(|e| {
-                error!("{LAUNCHER} - Error with reading Steam app manifest file at {path_app_manifest:?}:\n{e}");
+                error!("{LAUNCHER} - Error with reading Steam app manifest file at {path_app_manifest:?}:\n{e:#?}");
             })
             .ok()?;
 
@@ -298,133 +358,15 @@ impl<'steamlibrary> SteamLibrary<'steamlibrary> {
     }
 }
 
-// STEAM LAUNCHER -----------------------------------------------------------------------
-#[derive(Debug)]
-pub struct Steam {
-    path_steam_dir: PathBuf,
-    path_libraries_vdf: PathBuf,
-    is_using_flatpak: bool,
-}
-
-impl Steam {
-    pub fn new(path_home: &Path, path_data: &Path) -> Self {
-        let mut path_steam_dir = get_steam_dir(path_home, path_data);
-        let mut is_using_flatpak = false;
-        let mut path_libraries_vdf = get_steamapps_dir(&path_steam_dir).join("libraryfolders.vdf");
-
-        if !path_libraries_vdf.is_file() {
-            debug_fallback_flatpak!();
-
-            is_using_flatpak = true;
-            path_steam_dir = get_steam_flatpak_dir(path_home);
-            path_libraries_vdf = get_steamapps_dir(&path_steam_dir).join("libraryfolders.vdf");
-        };
-
-        debug_path!("main Steam directory", path_steam_dir);
-        debug_path!("libraryfolders.vdf", path_libraries_vdf);
-
-        Steam {
-            path_steam_dir,
-            path_libraries_vdf,
-            is_using_flatpak,
-        }
-    }
-
-    /// Get all available steam libraries by parsing the `libraryfolders.vdf` file
-    #[tracing::instrument(level = "trace")]
-    pub fn get_steam_libraries(&self) -> Result<Vec<SteamLibrary<'_>>, io::Error> {
-        Ok(BufReader::new(File::open(&self.path_libraries_vdf)?)
-            .lines()
-            .map_while(Result::ok)
-            .filter_map(|line| {
-                parse_value_json(&line, "path")
-                    .ok()
-                    .and_then(|(_, path_library)| {
-                        SteamLibrary::new(
-                            &self.path_steam_dir,
-                            PathBuf::from(path_library),
-                            self.is_using_flatpak,
-                        )
-                    })
-            })
-            .collect())
-    }
-}
-
-impl Launcher for Steam {
-    fn get_launcher_type(&self) -> SupportedLaunchers {
-        LAUNCHER
-    }
-
-    fn is_detected(&self) -> bool {
-        self.path_steam_dir.is_dir()
-            && get_steamapps_dir(&self.path_steam_dir)
-                .join("libraryfolders.vdf")
-                .is_file()
-    }
-
-    #[tracing::instrument(level = "trace")]
-    fn get_detected_games(&self) -> GamesResult {
-        let libraries = self
-            .get_steam_libraries()
-            .inspect_err(|e| error!("{LAUNCHER} - Error with parsing steam libraries:\n{e}"))?;
-
-        if libraries.is_empty() {
-            error!("{LAUNCHER} - No valid libraries detected");
-            return Ok(vec![]);
-        }
-
-        debug!("{LAUNCHER} - libraries detected: {:?}", libraries);
-
-        let games = libraries
-            .into_iter()
-            .filter_map(|l| {
-                let games = l.get_all_games().ok()?;
-
-                trace!(
-                    "{LAUNCHER} - games for library at {:?}: {:?}",
-                    l.path_library, games
-                );
-
-                Some(games)
-            })
-            .collect::<Vec<_>>();
-
-        if games.is_empty() {
-            warn_no_games!();
-        }
-
-        Ok(games.into_iter().flatten().collect())
-    }
-}
-
 #[cfg(test)]
-mod tests {
-    use test_case::test_case;
+mod test {
+    use pretty_assertions::assert_eq;
 
     use super::*;
-    use crate::{error::GamesParsingError, linux::test_utils::get_mock_file_system_path};
-
-    #[test_case(false, "", ".local/share"; "standard")]
-    #[test_case(false, "steam_symlinks", ""; "standard - fallback steam root")]
-    #[test_case(true, "", "invalid/data/path"; "flatpak")]
-    fn test_steam_launcher(is_testing_flatpak: bool, path_home: &str, path_data: &str) {
-        let path_files_system_mock = get_mock_file_system_path();
-        let launcher = Steam::new(
-            &path_files_system_mock.join(path_home),
-            &path_files_system_mock.join(path_data),
-        );
-
-        assert!(launcher.is_detected());
-        assert!(launcher.is_using_flatpak == is_testing_flatpak);
-
-        // Minor test to ensure debug formatting for `SupportedLaunchers` works as intended
-        assert_eq!(format!("{:?}", launcher.get_launcher_type()), "Steam");
-
-        // Library paths in `libraryfolders.vdf` mock are invalid library paths
-        let games_res = launcher.get_detected_games();
-        assert!(games_res.is_ok_and(|g| g.is_empty()));
-    }
+    use crate::linux::{
+        launchers::steam::test_utils::assert_cmd_steam,
+        test_utils::{assert_cmd_flatpak, get_mock_file_system_path},
+    };
 
     #[test]
     fn test_steam_libraries() -> Result<(), GamesParsingError> {
@@ -441,7 +383,7 @@ mod tests {
             SteamLibrary {
                 path_library: path_libs_dir.join("2"),
                 path_steam_dir,
-                is_using_flatpak: false,
+                is_using_flatpak: true,
             },
         ];
 
@@ -497,10 +439,13 @@ mod tests {
         assert!(games[1][1].path_hero.is_none());
         assert!(games[1][2].path_hero.is_none());
 
-        games.into_iter().for_each(|lib| {
-            lib.into_iter().for_each(|game| {
-                assert!(game.path_game_dir.is_some());
-            })
+        games[0].iter().for_each(|game| {
+            assert!(game.path_game_dir.is_some());
+            assert_cmd_steam(game);
+        });
+        games[1].iter().for_each(|game| {
+            assert!(game.path_game_dir.is_some());
+            assert_cmd_flatpak(game);
         });
 
         Ok(())

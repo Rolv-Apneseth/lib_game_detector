@@ -10,13 +10,6 @@ macro_rules! debug_path {
 }
 pub(crate) use debug_path;
 
-macro_rules! debug_fallback_flatpak {
-    () => {
-        tracing::debug!("{LAUNCHER} - Attempting to fall back to flatpak");
-    };
-}
-pub(crate) use debug_fallback_flatpak;
-
 macro_rules! warn_no_games {
     () => {
         tracing::warn!("{LAUNCHER} - Detected but no games found");

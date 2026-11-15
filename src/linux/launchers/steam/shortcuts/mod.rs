@@ -1,3 +1,6 @@
+pub(super) mod base;
+pub(super) mod flatpak;
+
 use std::{
     fs::{read, read_dir, read_to_string},
     mem,
@@ -16,12 +19,14 @@ use tracing::{error, trace, warn};
 
 use super::{get_steam_dir, get_steam_flatpak_dir, get_steam_launch_command};
 use crate::{
-    data::{Game, GamesResult, Launcher, SupportedLaunchers},
+    data::{Game, SupportedLaunchers},
     error::GamesParsingError,
-    macros::logs::{debug_fallback_flatpak, debug_path, warn_no_games},
+    macros::logs::warn_no_games,
     parsers::{parse_between_double_quotes, parse_not_double_quote},
     utils::{clean_game_title, get_existing_image_path},
 };
+
+const LAUNCHER: SupportedLaunchers = SupportedLaunchers::SteamShortcuts;
 
 /// Data parseable from a Steam user's `shortcuts.vdf`
 #[derive(Debug, Clone, Default)]
@@ -85,6 +90,36 @@ impl ParsableDataCombined {
             path_header,
         }
     }
+
+    fn into_game(self, is_using_flatpak: bool) -> Game {
+        let ParsableDataCombined {
+            app_id,
+            title,
+            path_box_art,
+            path_icon,
+            path_hero,
+            path_header,
+        } = self;
+
+        let launch_command = get_steam_launch_command(app_id, is_using_flatpak);
+        let path_game_dir = None;
+        let title = clean_game_title(title);
+
+        trace!("{LAUNCHER} - Game directory for '{title}': {path_game_dir:?}");
+        trace!("{LAUNCHER} - Box art for '{title}': {path_box_art:?}");
+        trace!("{LAUNCHER} - Icon for '{title}': {path_icon:?}");
+
+        Game {
+            title: clean_game_title(&title),
+            launch_command,
+            path_box_art,
+            path_game_dir,
+            path_icon,
+            source: LAUNCHER.clone(),
+            path_hero,
+            path_header,
+        }
+    }
 }
 
 /// Paths to the files required for parsing all Steam shortcut data
@@ -94,8 +129,6 @@ pub struct UserDataFiles {
     path_screenshots: PathBuf,
     path_box_art_dir: PathBuf,
 }
-
-const LAUNCHER: SupportedLaunchers = SupportedLaunchers::SteamShortcuts;
 
 // UTILS -----------------------------------------------------------------------------------------
 #[tracing::instrument(level = "trace")]
@@ -211,163 +244,91 @@ fn parse_screenshots_vdf<'a>(
     Ok((file_content, data))
 }
 
-// STEAM SHORTCUTS / NON-STEAM GAMES ---------------------------------------------------------------
-#[derive(Debug)]
-pub struct SteamShortcuts {
-    path_steam_userdata_dir: PathBuf,
+#[tracing::instrument(level = "trace")]
+fn parse_combined_data(
+    path_steam_userdata_dir: &Path,
+) -> Result<Option<Vec<ParsableDataCombined>>, GamesParsingError> {
+    let mut userdata_files = find_userdata_files(path_steam_userdata_dir)?.peekable();
+    if userdata_files.peek().is_none() {
+        return Ok(None);
+    };
+
+    userdata_files
+        .map(
+            |UserDataFiles {
+                 path_shortcuts,
+                 path_screenshots,
+                 path_box_art_dir,
+             }| {
+                let shortcuts_data = get_parsable_shortcuts_data(&path_shortcuts)?;
+                let mut screenshots_data = get_parsable_screenshots_data(&path_screenshots)?;
+
+                let res = shortcuts_data
+                    .into_iter()
+                    .filter_map(|shortcut_data| {
+                        screenshots_data
+                            .iter_mut()
+                            // Reverse because the last entry is the newest one and this file doesn't seem to
+                            // get reset, so we want to take the one most likely to be correct (in the
+                            // case of duplicate entries)
+                            .rev()
+                            .find(|d| !d.title.is_empty() && d.title == shortcut_data.title)
+                            .map(|screenshot_data| {
+                                ParsableDataCombined::combine(
+                                    &path_box_art_dir,
+                                    shortcut_data,
+                                    mem::take(screenshot_data),
+                                )
+                            })
+                    })
+                    .collect_vec();
+
+                Ok::<Vec<ParsableDataCombined>, GamesParsingError>(res)
+            },
+        )
+        .flatten_ok()
+        .collect::<Result<Vec<ParsableDataCombined>, GamesParsingError>>()
+        .map(Some)
+}
+
+fn get_shortcut_games(
+    path_steam_userdata_dir: &Path,
     is_using_flatpak: bool,
-}
+) -> Result<Vec<Game>, GamesParsingError> {
+    let shortcut_data = parse_combined_data(path_steam_userdata_dir)
+        .inspect_err(|e| error!("{LAUNCHER} - {e:#?}"))?
+        .unwrap_or_default();
 
-impl SteamShortcuts {
-    pub fn new(path_home: &Path, path_data: &Path) -> Self {
-        let mut path_steam_userdata_dir = get_steam_dir(path_home, path_data).join("userdata");
-        let mut is_using_flatpak = false;
-
-        if !path_steam_userdata_dir.is_dir() {
-            debug_fallback_flatpak!();
-
-            is_using_flatpak = true;
-            path_steam_userdata_dir = get_steam_flatpak_dir(path_home).join("userdata");
-        };
-
-        debug_path!("userdata dir path", path_steam_userdata_dir);
-
-        Self {
-            path_steam_userdata_dir,
-            is_using_flatpak,
-        }
+    if shortcut_data.is_empty() {
+        warn_no_games!();
     }
 
-    #[tracing::instrument(level = "trace")]
-    fn parse_combined_data(&self) -> Result<Option<Vec<ParsableDataCombined>>, GamesParsingError> {
-        let mut userdata_files = find_userdata_files(&self.path_steam_userdata_dir)?.peekable();
-        if userdata_files.peek().is_none() {
-            return Ok(None);
-        };
-
-        userdata_files
-            .map(
-                |UserDataFiles {
-                     path_shortcuts,
-                     path_screenshots,
-                     path_box_art_dir,
-                 }| {
-                    let shortcuts_data = get_parsable_shortcuts_data(&path_shortcuts)?;
-                    let mut screenshots_data = get_parsable_screenshots_data(&path_screenshots)?;
-
-                    let res = shortcuts_data
-                        .into_iter()
-                        .filter_map(|shortcut_data| {
-                            screenshots_data
-                                .iter_mut()
-                                // Reverse because the last entry is the newest one and this file doesn't seem to
-                                // get reset, so we want to take the one most likely to be correct (in the
-                                // case of duplicate entries)
-                                .rev()
-                                .find(|d| !d.title.is_empty() && d.title == shortcut_data.title)
-                                .map(|screenshot_data| {
-                                    ParsableDataCombined::combine(
-                                        &path_box_art_dir,
-                                        shortcut_data,
-                                        mem::take(screenshot_data),
-                                    )
-                                })
-                        })
-                        .collect_vec();
-
-                    Ok::<Vec<ParsableDataCombined>, GamesParsingError>(res)
-                },
-            )
-            .flatten_ok()
-            .collect::<Result<Vec<ParsableDataCombined>, GamesParsingError>>()
-            .map(Some)
-    }
-}
-
-impl Launcher for SteamShortcuts {
-    fn get_launcher_type(&self) -> SupportedLaunchers {
-        LAUNCHER
-    }
-
-    fn is_detected(&self) -> bool {
-        self.path_steam_userdata_dir.is_dir()
-    }
-
-    #[tracing::instrument(level = "trace")]
-    fn get_detected_games(&self) -> GamesResult {
-        let Some(shortcut_data) = self
-            .parse_combined_data()
-            .inspect_err(|e| error!("{LAUNCHER} - {e}"))?
-        else {
-            // No Steam shortcut data files found
-            return Ok(vec![]);
-        };
-
-        if shortcut_data.is_empty() {
-            warn_no_games!();
-        }
-
-        Ok(shortcut_data
-            .into_iter()
-            .map(
-                |ParsableDataCombined {
-                     app_id,
-                     title,
-                     path_box_art,
-                     path_icon,
-                     path_hero,
-                     path_header,
-                 }| {
-                    let launch_command = get_steam_launch_command(app_id, self.is_using_flatpak);
-                    let path_game_dir = None;
-                    let title = clean_game_title(title);
-
-                    trace!("{LAUNCHER} - Game directory for '{title}': {path_game_dir:?}");
-                    trace!("{LAUNCHER} - Box art for '{title}': {path_box_art:?}");
-                    trace!("{LAUNCHER} - Icon for '{title}': {path_icon:?}");
-
-                    Game {
-                        title: clean_game_title(&title),
-                        launch_command,
-                        path_box_art,
-                        path_game_dir,
-                        path_icon,
-                        source: LAUNCHER.clone(),
-                        path_hero,
-                        path_header,
-                    }
-                },
-            )
-            .collect())
-    }
+    Ok(shortcut_data
+        .into_iter()
+        .map(|d| d.into_game(is_using_flatpak))
+        .collect())
 }
 
 #[cfg(test)]
-mod tests {
-    use test_case::test_case;
+mod test_utils {
+    use crate::{
+        data::{Game, Launcher},
+        error::GamesParsingError,
+    };
 
-    use super::*;
-    use crate::linux::test_utils::get_mock_file_system_path;
-
-    #[test_case(false, "", ".local/share"; "standard")]
-    #[test_case(false, "steam_symlinks", ""; "standard - fallback steam root")]
-    #[test_case(true, "", "invalid/data/path"; "flatpak")]
-    fn test_steam_shortcuts_launcher(
-        is_testing_flatpak: bool,
-        path_home: &str,
-        path_data: &str,
-    ) -> Result<(), GamesParsingError> {
-        let path_files_system_mock = get_mock_file_system_path();
-        let launcher = SteamShortcuts::new(
-            &path_files_system_mock.join(path_home),
-            &path_files_system_mock.join(path_data),
-        );
-
+    pub fn check_shortcuts_launcher<F>(
+        launcher: impl Launcher,
+        assert_cmd: F,
+    ) -> Result<(), GamesParsingError>
+    where
+        F: Fn(&Game),
+    {
         assert!(launcher.is_detected());
-        assert!(launcher.is_using_flatpak == is_testing_flatpak);
 
         let games = launcher.get_detected_games()?;
         assert_eq!(games.len(), 3);
+
+        assert_cmd(&games[0]);
 
         assert_eq!(games[0].title, "ATLauncher");
         assert_eq!(games[1].title, "Brave");

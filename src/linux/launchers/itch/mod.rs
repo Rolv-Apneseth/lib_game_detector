@@ -1,6 +1,12 @@
 // PATHS:
 // - ~/.config/itch/db/butler.db
 // - ~/.var/app/io.itch.itch/config/itch/db/butler.db
+pub use flatpak::ItchFlatpak;
+pub use standard::Itch;
+
+mod flatpak;
+mod standard;
+
 use std::{
     path::{Path, PathBuf},
     process::Command,
@@ -11,9 +17,8 @@ use rusqlite::{OpenFlags, fallible_iterator::FallibleIterator, params};
 use tracing::{error, trace, warn};
 
 use crate::{
-    data::{Game, GamesResult, Launcher, SupportedLaunchers},
+    data::{Game, SupportedLaunchers},
     error::GamesParsingError,
-    macros::logs::{debug_fallback_flatpak, debug_path},
     parsers::parse_value_json,
     utils::clean_game_title,
 };
@@ -85,6 +90,43 @@ impl DbData {
             interpreter: parsed_verdict.interpreter,
         })
     }
+
+    fn into_game(self) -> Game {
+        let DbData {
+            title,
+            path_game_dir,
+            path_bin,
+            interpreter,
+        } = self;
+
+        trace!("{LAUNCHER} - Game directory for '{title}': {path_game_dir:?}");
+        trace!("{LAUNCHER} - Binary path for '{title}': {path_bin:?}");
+        trace!("{LAUNCHER} - Interpreter for '{title}': {interpreter:?}");
+
+        // TODO: itch CLI to launch game using cave ID, if the following PR gets
+        // merged: <https://github.com/itchio/itch/pull/3069>
+        let launch_command = if let Some(interpreter) = interpreter {
+            let mut cmd = Command::new(interpreter);
+            cmd.arg(path_bin);
+            cmd
+        } else {
+            Command::new(path_bin)
+        };
+
+        // TODO: use `some_if_dir` and `some_if_file` when there is a better testing
+        // setup. Don't want to edit the test DB files to point to paths that exist.
+
+        Game {
+            title,
+            path_icon: None,
+            path_box_art: None,
+            path_game_dir: Some(path_game_dir),
+            launch_command,
+            source: LAUNCHER,
+            path_hero: None,
+            path_header: None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -124,120 +166,32 @@ impl ParsedVerdict {
     }
 }
 
-#[derive(Debug)]
-pub struct Itch {
-    path_butler_db: PathBuf,
-    #[allow(dead_code)]
-    is_using_flatpak: bool,
-}
+// UTILS -----------------------------------------------------------------------------
+/// Get parseable DB data from the given DB file
+fn get_db_data(path_butler_db: &Path) -> Result<impl Iterator<Item = DbData>, GamesParsingError> {
+    let conn =
+        rusqlite::Connection::open_with_flags(path_butler_db, OpenFlags::SQLITE_OPEN_READ_ONLY)
+            .inspect_err(|e| error!("{LAUNCHER} - failed to open the butler DB: {e:#?}"))?;
 
-impl Itch {
-    pub fn new(path_home: &Path, path_config: &Path) -> Self {
-        let mut path_config_itch = path_config.join("itch");
-        let mut is_using_flatpak = false;
+    let mut stmt = conn
+        .prepare(BUTLER_DB_QUERY)
+        .inspect_err(|e| error!("{LAUNCHER} - failed to prepare DB query: {e:#?}"))?;
 
-        if !path_config_itch.is_dir() {
-            is_using_flatpak = true;
-            debug_fallback_flatpak!();
+    let db_rows = stmt
+        .query(params![])
+        .inspect_err(|e| error!("{LAUNCHER} - failed to execute DB query: {e:#?}"))?
+        .map(|r| DbRow::try_from(r))
+        .collect::<Vec<DbRow>>()?;
 
-            let path_flatpak = path_home.join(".var/app/io.itch.itch");
-            path_config_itch = path_flatpak.join("config/itch");
-        }
+    if db_rows.is_empty() {
+        warn!("{LAUNCHER} - No games were parsed from the butler DB file at {path_butler_db:?}",)
+    };
 
-        let path_butler_db = path_config_itch.join("db").join("butler.db");
+    let db_data = db_rows
+        .into_iter()
+        .filter_map(|r| DbData::from_db_row(r).ok());
 
-        debug_path!("butler DB file", path_butler_db);
-
-        Self {
-            path_butler_db,
-            is_using_flatpak,
-        }
-    }
-
-    fn get_db_data(&self) -> Result<impl Iterator<Item = DbData>, GamesParsingError> {
-        let conn = rusqlite::Connection::open_with_flags(
-            self.path_butler_db.as_path(),
-            OpenFlags::SQLITE_OPEN_READ_ONLY,
-        )
-        .inspect_err(|e| error!("{LAUNCHER} - failed to open the butler DB: {e}"))?;
-
-        let mut stmt = conn
-            .prepare(BUTLER_DB_QUERY)
-            .inspect_err(|e| error!("{LAUNCHER} - failed to prepare DB query: {e}"))?;
-
-        let db_rows = stmt
-            .query(params![])
-            .inspect_err(|e| error!("{LAUNCHER} - failed to execute DB query: {e}"))?
-            .map(|r| DbRow::try_from(r))
-            .collect::<Vec<DbRow>>()?;
-
-        if db_rows.is_empty() {
-            warn!(
-                "{LAUNCHER} - No games were parsed from the butler DB file at {:?}",
-                self.path_butler_db
-            )
-        };
-
-        let db_data = db_rows
-            .into_iter()
-            .filter_map(|r| DbData::from_db_row(r).ok());
-
-        Ok(db_data)
-    }
-}
-
-impl Launcher for Itch {
-    fn get_launcher_type(&self) -> SupportedLaunchers {
-        LAUNCHER
-    }
-
-    fn is_detected(&self) -> bool {
-        self.path_butler_db.is_file()
-    }
-
-    fn get_detected_games(&self) -> GamesResult {
-        let games = self
-            .get_db_data()?
-            .map(
-                |DbData {
-                     title,
-                     path_game_dir,
-                     path_bin,
-                     interpreter,
-                 }| {
-                    trace!("{LAUNCHER} - Game directory for '{title}': {path_game_dir:?}");
-                    trace!("{LAUNCHER} - Binary path for '{title}': {path_bin:?}");
-                    trace!("{LAUNCHER} - Interpreter for '{title}': {interpreter:?}");
-
-                    // TODO: itch CLI to launch game using cave ID, if the following PR gets
-                    // merged: <https://github.com/itchio/itch/pull/3069>
-                    let launch_command = if let Some(interpreter) = interpreter {
-                        let mut cmd = Command::new(interpreter);
-                        cmd.arg(path_bin);
-                        cmd
-                    } else {
-                        Command::new(path_bin)
-                    };
-
-                    // TODO: use `some_if_dir` and `some_if_file` when there is a better testing
-                    // setup. Don't want to edit the test DB files to point to paths that exist.
-
-                    Game {
-                        title,
-                        path_icon: None,
-                        path_box_art: None,
-                        path_game_dir: Some(path_game_dir),
-                        launch_command,
-                        source: LAUNCHER,
-                        path_hero: None,
-                        path_header: None,
-                    }
-                },
-            )
-            .collect::<Vec<Game>>();
-
-        Ok(games)
-    }
+    Ok(db_data)
 }
 
 #[cfg(test)]
@@ -246,7 +200,6 @@ mod test {
     use test_case::test_case;
 
     use super::*;
-    use crate::{error::GamesParsingError, linux::test_utils::get_mock_file_system_path};
 
     #[test_case(
         "{\"basePath\":\"/media/main/Games/ultrakill-prelude\",\"totalSize\":189548486,\"candidates\":[{\"path\":\"Linux Test Build.x86_64\",\"depth\":1,\"flavor\":\"linux\",\"arch\":\"amd64\",\"size\":29327440}]}",
@@ -254,7 +207,8 @@ mod test {
             game_dir: "/media/main/Games/ultrakill-prelude".into(),
             bin: "Linux Test Build.x86_64".into(),
             interpreter: None,
-        }
+        };
+        "standard_1"
     )]
     #[test_case(
         "{\"basePath\":\"/media/main/Games/aottg2\",\"totalSize\":2403829342,\"candidates\":[{\"path\":\"Aottg2Linux/Aottg2Linux.x86_64\",\"depth\":2,\"flavor\":\"linux\",\"arch\":\"amd64\",\"size\":14720}]}",
@@ -262,7 +216,8 @@ mod test {
             game_dir: "/media/main/Games/aottg2".into(),
             bin: "Aottg2Linux/Aottg2Linux.x86_64".into(),
             interpreter: None,
-        }
+        };
+        "standard_2"
     )]
     #[test_case(
         "{\"basePath\":\"/home/alex/.local/share/itch/burrows\",\"totalSize\":1172312431,\"candidates\":[{\"path\":\"Burrows-0.17-pc/Burrows.sh\",\"depth\":2,\"flavor\":\"script\",\"size\":1663,\"scriptInfo\":{\"interpreter\":\"/bin/sh\"}}]}",
@@ -270,7 +225,8 @@ mod test {
             game_dir: "/home/alex/.local/share/itch/burrows".into(),
             bin: "Burrows-0.17-pc/Burrows.sh".into(),
             interpreter: Some("/bin/sh".into()),
-        }
+        };
+        "standard_3"
     )]
     #[test_case(
         "{\"basePath\":\"/home/alex/.local/share/itch/lautomne\",\"totalSize\":1063024341,\"candidates\":[{\"path\":\"lautomne-.4-pc/lautomne.sh\",\"depth\":2,\"flavor\":\"script\",\"size\":1660,\"scriptInfo\":{\"interpreter\":\"/bin/sh\"}}]}",
@@ -278,7 +234,8 @@ mod test {
             game_dir: "/home/alex/.local/share/itch/lautomne".into(),
             bin: "lautomne-.4-pc/lautomne.sh".into(),
             interpreter: Some("/bin/sh".into()),
-        }
+        };
+        "standard_4"
     )]
     fn parse_verdict_str(verdict: &str, expected: ParsedVerdict) {
         assert_eq!(
@@ -286,21 +243,17 @@ mod test {
             expected
         );
     }
+}
 
-    #[test_case(false, ".config"; "standard")]
-    #[test_case(true, "invalid/path"; "flatpak")]
-    fn test_itch_launcher(
-        is_testing_flatpak: bool,
-        path_config: &str,
+#[cfg(test)]
+mod test_utils {
+    use crate::{data::Launcher, error::GamesParsingError};
+
+    pub fn check_itch_launcher(
+        launcher: impl Launcher,
+        _is_using_flatpak: bool,
     ) -> Result<(), GamesParsingError> {
-        let path_file_system_mock = get_mock_file_system_path();
-        let launcher = Itch::new(
-            &path_file_system_mock,
-            &path_file_system_mock.join(path_config),
-        );
-
         assert!(launcher.is_detected());
-        assert!(launcher.is_using_flatpak == is_testing_flatpak);
 
         let mut games = launcher.get_detected_games()?;
         games.sort_by_key(|a| a.title.clone());

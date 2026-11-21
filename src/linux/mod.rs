@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use dirs::{cache_dir, config_dir, data_dir, home_dir};
-use launchers::heroic::sideload::HeroicSideload;
+use launchers::heroic::sideload::HeroicSideloadFlatpak;
 use tracing::error;
 
 use self::launchers::{
@@ -14,7 +14,18 @@ use self::launchers::{
 };
 use crate::{
     data::{Game, GamesDetector, GamesPerLauncher, Launchers, SupportedLaunchers},
-    linux::launchers::faugus::Faugus,
+    linux::launchers::{
+        bottles::BottlesFlatpak,
+        faugus::{Faugus, FaugusFlatpak},
+        heroic::{
+            amazon::HeroicAmazonFlatpak, epic::HeroicEpicFlatpak, gog::HeroicGOGFlatpak,
+            sideload::HeroicSideload,
+        },
+        itch::ItchFlatpak,
+        lutris::LutrisFlatpak,
+        minecraft::{at::MinecraftATFlatpak, prism::MinecraftPrismFlatpak},
+        steam::{SteamFlatpak, SteamShortcutsFlatpak},
+    },
 };
 
 mod launchers;
@@ -40,22 +51,29 @@ impl GamesDetectorLinux {
 
         vec![
             Arc::new(Steam::new(&path_home, &path_data)),
+            Arc::new(SteamFlatpak::new(&path_home)),
             Arc::new(SteamShortcuts::new(&path_home, &path_data)),
-            Arc::new(HeroicGOG::new(&path_home, &path_config)),
-            Arc::new(HeroicEpic::new(&path_home, &path_config)),
-            Arc::new(HeroicAmazon::new(&path_home, &path_config)),
-            Arc::new(HeroicSideload::new(&path_home, &path_config)),
-            Arc::new(Lutris::new(
-                &path_home,
-                &path_config,
-                &path_cache,
-                &path_data,
-            )),
-            Arc::new(Bottles::new(&path_home, &path_data)),
-            Arc::new(MinecraftPrism::new(&path_home, &path_data)),
-            Arc::new(MinecraftAT::new(&path_home, &path_data)),
-            Arc::new(Itch::new(&path_home, &path_config)),
-            Arc::new(Faugus::new(&path_home, &path_data)),
+            Arc::new(SteamShortcutsFlatpak::new(&path_home)),
+            Arc::new(HeroicGOG::new(&path_config)),
+            Arc::new(HeroicGOGFlatpak::new(&path_home)),
+            Arc::new(HeroicEpic::new(&path_config)),
+            Arc::new(HeroicEpicFlatpak::new(&path_home)),
+            Arc::new(HeroicAmazon::new(&path_config)),
+            Arc::new(HeroicAmazonFlatpak::new(&path_home)),
+            Arc::new(HeroicSideload::new(&path_config)),
+            Arc::new(HeroicSideloadFlatpak::new(&path_home)),
+            Arc::new(Lutris::new(&path_data, &path_config, &path_cache)),
+            Arc::new(LutrisFlatpak::new(&path_home, &path_config, &path_cache)),
+            Arc::new(Bottles::new(&path_data)),
+            Arc::new(BottlesFlatpak::new(&path_home)),
+            Arc::new(MinecraftPrism::new(&path_data)),
+            Arc::new(MinecraftPrismFlatpak::new(&path_home)),
+            Arc::new(MinecraftAT::new(&path_data)),
+            Arc::new(MinecraftATFlatpak::new(&path_home)),
+            Arc::new(Itch::new(&path_config)),
+            Arc::new(ItchFlatpak::new(&path_home)),
+            Arc::new(Faugus::new(&path_data)),
+            Arc::new(FaugusFlatpak::new(&path_home)),
         ]
     }
 }
@@ -72,7 +90,6 @@ impl GamesDetector for GamesDetectorLinux {
     fn get_all_detected_games(&self) -> Vec<Game> {
         self.get_detected_launchers()
             .iter()
-            .filter(|l| l.is_detected())
             .filter_map(|l| l.get_detected_games().ok())
             .flatten()
             .collect()
@@ -103,11 +120,16 @@ impl GamesDetector for GamesDetectorLinux {
         &self,
         launcher_type: SupportedLaunchers,
     ) -> Option<Vec<Game>> {
-        self.get_detected_launchers()
+        let launchers = {
+            let mut l = self.get_detected_launchers();
+            l.retain(|l| l.get_launcher_type() == launcher_type);
+            if l.is_empty() { return None } else { l }
+        };
+
+        Some(launchers
             .into_iter()
-            .find(|l| l.get_launcher_type() == launcher_type)
-            .and_then(|l| {
-                l.get_detected_games()
+            .filter_map(|launcher| {
+                launcher.get_detected_games()
                     .map_err(|e| {
                         #[cfg(debug_assertions)]
                         dbg!(&e);
@@ -117,6 +139,8 @@ impl GamesDetector for GamesDetectorLinux {
                     })
                     .ok()
             })
+            .flatten()
+            .collect())
     }
 }
 
@@ -125,7 +149,24 @@ impl GamesDetector for GamesDetectorLinux {
 pub mod test_utils {
     use std::path::PathBuf;
 
+    use pretty_assertions::assert_eq;
+
+    use crate::data::Game;
+
     pub fn get_mock_file_system_path() -> PathBuf {
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/file_system_mocks/linux")
+    }
+
+    pub fn assert_cmd(game: &Game, cmd: &str) {
+        assert_eq!(game.launch_command.get_program().to_str(), Some(cmd))
+    }
+
+    pub fn assert_cmd_flatpak(game: &Game) {
+        assert_cmd(game, "flatpak");
+        assert!(game.is_flatpak()); // Should be the same as above, but won't give as nice of an error
+    }
+
+    pub fn assert_cmd_xdg(game: &Game) {
+        assert_cmd(game, "xdg-open");
     }
 }

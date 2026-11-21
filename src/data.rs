@@ -54,6 +54,14 @@ pub struct Game {
     pub source: SupportedLaunchers,
 }
 
+impl Game {
+    /// Whether this game is launched through flatpak.
+    #[must_use]
+    pub fn is_flatpak(&self) -> bool {
+        self.launch_command.get_program().to_str() == Some("flatpak")
+    }
+}
+
 /// Data structure representing a supported games source
 #[derive(Clone, PartialEq, Eq)]
 pub enum SupportedLaunchers {
@@ -148,4 +156,30 @@ pub trait GamesDetector {
         &self,
         launcher_type: SupportedLaunchers,
     ) -> Option<Vec<Game>>;
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    fn game_with_cmd(cmd: &str) -> Game {
+        Game {
+            title: "".into(),
+            path_game_dir: None,
+            path_icon: None,
+            path_box_art: None,
+            path_hero: None,
+            path_header: None,
+            launch_command: Command::new(cmd),
+            source: SupportedLaunchers::Steam,
+        }
+    }
+
+    #[test]
+    fn test_game_is_flatpak() {
+        assert!(game_with_cmd("flatpak").is_flatpak());
+        assert!(!game_with_cmd("steam").is_flatpak());
+        assert!(!game_with_cmd("xdg-open").is_flatpak());
+        assert!(!game_with_cmd("").is_flatpak());
+    }
 }

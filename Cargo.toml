@@ -1,12 +1,12 @@
 [package]
 name = "lib_game_detector"
-version = "0.0.39"
+version = "0.0.40"
 edition = "2024"
 description = "A Rust library for detecting and parsing data about games installed on the system"
 readme = "README.md"
 repository = "https://github.com/rolv-apneseth/lib_game_detector/"
 license = "AGPL-3.0-only"
-rust-version = "1.85.0"
+rust-version = "1.89.0"
 include = ["/src"]
 
 [package.metadata.docs.rs]
@@ -22,13 +22,13 @@ thiserror = "2.0"
 steam_shortcuts_util = "1.1"
 walkdir = "2.5"
 serde = { version = "1.0", features = ["derive"], optional = true }
-rusqlite = { version = "0.40" }
+rusqlite = { version = "0.43" }
 
 [dev-dependencies]
 criterion = { version = "0.8", features = ["html_reports"] }
 divan = "0.1"
 is-terminal = "0.4"
-test-case = "3.3"
+test-case = "3.4"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 serde_json = { version = "1.0" }
 lib_game_detector = { path = "." }

@@ -13,11 +13,14 @@ use std::{
 };
 
 use nom::IResult;
-use tracing::debug;
+use tracing::trace;
 
 use crate::{
+    data::{Game, SupportedLaunchers},
     parsers::{parse_value_json, parse_value_json_unquoted},
-    utils::{clean_game_title, get_launch_command, get_launch_command_flatpak},
+    utils::{
+        clean_game_title, get_launch_command, get_launch_command_flatpak, some_if_dir, some_if_file,
+    },
 };
 
 /// Useful data about a game which is parseable from a Heroic Games Launcher library file
@@ -26,6 +29,46 @@ struct ParsableLibraryData {
     app_id: String,
     install_path: String,
     title: String,
+}
+
+impl ParsableLibraryData {
+    fn into_game<F>(
+        self,
+        source: &str,
+        path_icons: &Path,
+        launcher: SupportedLaunchers,
+        get_launch_command: F,
+    ) -> Game
+    where
+        F: Fn(&str, &str) -> Command,
+    {
+        let Self {
+            app_id,
+            install_path,
+            title,
+        } = self;
+
+        let launch_command = get_launch_command(source, &app_id);
+
+        trace!("launch command for '{title}': {launch_command:?}");
+
+        let path_game_dir = some_if_dir(PathBuf::from(install_path));
+        let path_box_art = some_if_file(path_icons.join(format!("{app_id}.jpg")));
+
+        trace!("{launcher} - Game directory for '{title}': {path_game_dir:?}");
+        trace!("{launcher} - Box art for '{title}': {path_box_art:?}");
+
+        Game {
+            title,
+            launch_command,
+            path_box_art,
+            path_game_dir,
+            path_icon: None,
+            source: launcher,
+            path_hero: None,
+            path_header: None,
+        }
+    }
 }
 
 /// Parses a single (installed) game from a Heroic Games Launcher library file
@@ -92,32 +135,32 @@ fn parse_all_games_from_library_common(path: &Path) -> Result<Vec<ParsableLibrar
 }
 
 /// Get path to the Heroic Games Launcher config dir, falling back to the flatpak version if necessary
-fn get_heroic_config_path(path_home: &Path, path_config: &Path) -> (PathBuf, bool) {
-    let mut is_using_flatpak = false;
-    let mut path_heroic_config = path_config.join("heroic");
+fn get_heroic_config_path(path_config: &Path) -> PathBuf {
+    path_config.join("heroic")
+}
 
-    if !path_heroic_config.is_dir() {
-        debug!("Heroic - Attempting to fall back to flatpak");
+fn get_heroic_config_path_flatpak(path_home: &Path) -> PathBuf {
+    path_home.join(".var/app/com.heroicgameslauncher.hgl/config/heroic")
+}
 
-        is_using_flatpak = true;
-        path_heroic_config = path_home.join(".var/app/com.heroicgameslauncher.hgl/config/heroic");
-    }
-
-    (path_heroic_config, is_using_flatpak)
+/// Get the launch URI for a Heroic game given its source and app ID.
+fn get_heroic_launch_uri(source: &str, app_id: &str) -> String {
+    format!("heroic://launch/{source}/{app_id}")
 }
 
 /// Get launch command for game from any of the Heroic Games Launcher sources
-fn get_launch_command_for_heroic_source(
-    source: &str,
-    app_id: &str,
-    is_using_flatpak: bool,
-) -> Command {
-    let game_run_arg = format!("heroic://launch/{source}/{app_id}");
-    let args = [game_run_arg.as_str()];
+fn get_launch_command_for_heroic_source(source: &str, app_id: &str) -> Command {
+    let game_run_arg = get_heroic_launch_uri(source, app_id);
+    get_launch_command("xdg-open", [game_run_arg.as_str()], [])
+}
 
-    if is_using_flatpak {
-        get_launch_command_flatpak("com.heroicgameslauncher.hgl", [], args, [])
-    } else {
-        get_launch_command("xdg-open", args, [])
-    }
+/// Get launch command for game from any of the Heroic Games Launcher sources (flatpak version)
+fn get_launch_command_for_heroic_source_flatpak(source: &str, app_id: &str) -> Command {
+    let game_run_arg = get_heroic_launch_uri(source, app_id);
+    get_launch_command_flatpak(
+        "com.heroicgameslauncher.hgl",
+        [],
+        [game_run_arg.as_str()],
+        [],
+    )
 }

@@ -163,6 +163,7 @@ pub mod test_utils {
 
     pub fn assert_cmd_flatpak(game: &Game) {
         assert_cmd(game, "flatpak");
+        assert!(game.is_flatpak()); // Should be the same as above, but won't give as nice of an error
     }
 
     pub fn assert_cmd_xdg(game: &Game) {
